@@ -52,6 +52,20 @@ class Calculator:
         result = x * x
         self.history.append(f"{x}² = {result}")
         return result
+    
+    def multiply_by_two(self, x: Union[int, float]) -> Union[int, float]:
+        """
+        数値を2倍にします。
+
+        Args:
+            x: 計算対象の数値
+
+        Returns:
+            x の2倍
+        """
+        result = x * 2
+        self.history.append(f"{x} × 2 = {result}")
+        return result
 
     def cube(self, x: Union[int, float]) -> Union[int, float]:
         """
