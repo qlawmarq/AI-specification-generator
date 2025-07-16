@@ -9,6 +9,7 @@ code analysis results.
 import asyncio
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -46,16 +47,26 @@ class LLMProvider:
 
         if provider == "gemini" and self.config.gemini_api_key:
             # Gemini API
+            import httpx
             from langchain_google_genai import ChatGoogleGenerativeAI
 
             # Use gemini-specific model names
             model = self.config.llm_model or "gemini-2.0-flash"
+
+            # Create async client with timeout configuration
+            timeout_config = httpx.Timeout(
+                timeout=self.config.performance_settings.request_timeout,
+                connect=5.0,
+                read=self.config.performance_settings.request_timeout - 5.0
+            )
+            async_client = httpx.AsyncClient(timeout=timeout_config)
 
             return ChatGoogleGenerativeAI(
                 model=model,
                 temperature=0.3,
                 google_api_key=self.config.gemini_api_key,
                 max_retries=self.config.performance_settings.max_retries,
+                http_async_client=async_client,
             )
         elif (
             provider == "azure"
@@ -101,9 +112,14 @@ class LLMProvider:
         await self._rate_limit()
 
         try:
-            # Use async execution to avoid blocking
-            response = await asyncio.get_event_loop().run_in_executor(
-                None, self.llm.predict, prompt
+            # Use async execution with timeout to avoid blocking
+            # Reason: Apply configured timeout to LLM operations to prevent infinite waits
+            timeout_seconds = self.config.performance_settings.request_timeout
+            response = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, self.llm.predict, prompt
+                ),
+                timeout=timeout_seconds
             )
 
             self.request_count += 1
@@ -158,21 +174,8 @@ class AnalysisProcessor:
                 )
             )
 
-            # Parse JSON response
-            try:
-                parsed_analysis = json.loads(analysis_result)
-                return parsed_analysis
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse analysis JSON: {e}")
-                # Return fallback analysis
-                return {
-                    "overview": analysis_result,
-                    "functions": [],
-                    "classes": [],
-                    "dependencies": [],
-                    "data_flow": "Unknown",
-                    "error_handling": "Unknown",
-                }
+            # Parse JSON response with multiple fallback strategies
+            return self._parse_analysis_response(analysis_result)
 
         except Exception as e:
             logger.error(f"Analysis failed for chunk {chunk.file_path}: {e}")
@@ -254,7 +257,9 @@ class AnalysisProcessor:
             combined["dependencies"].extend(analysis.get("dependencies", []))
 
         # Combine purposes
-        combined["purpose"] = " ".join(purposes)
+        # Reason: Ensure all purposes are strings before joining to avoid type errors
+        purposes_str = [str(p) if not isinstance(p, str) else p for p in purposes]
+        combined["purpose"] = " ".join(purposes_str)
 
         # Calculate complexity based on function/class count
         total_elements = len(combined["functions"]) + len(combined["classes"])
@@ -278,6 +283,48 @@ class AnalysisProcessor:
             function_count=function_count,
             class_count=class_count
         )
+
+    def _parse_analysis_response(self, analysis_result: str) -> dict[str, Any]:
+        """Parse LLM analysis response with multiple fallback strategies."""
+        try:
+            # Strategy 1: Direct JSON parsing
+            return json.loads(analysis_result)
+        except json.JSONDecodeError:
+            try:
+                # Strategy 2: Extract from markdown code blocks
+                json_match = re.search(
+                    r'```json\s*(\{.*?\})\s*```', analysis_result, re.DOTALL
+                )
+                if json_match:
+                    return json.loads(json_match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+            try:
+                # Strategy 3: Find JSON object in text
+                json_match = re.search(r'\{.*\}', analysis_result, re.DOTALL)
+                if json_match:
+                    return json.loads(json_match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+            # Strategy 4: Structured fallback
+            logger.warning("Failed to parse analysis JSON, using fallback structure")
+            return {
+                "overview": (
+                    analysis_result[:500] + "..."
+                    if len(analysis_result) > 500
+                    else analysis_result
+                ),
+                "functions": [],
+                "classes": [],
+                "dependencies": [],
+                "data_flow": "Unknown",
+                "error_handling": "Unknown",
+                "key_components": ["Unable to parse detailed analysis"],
+                "recommendations": ["Review LLM response format"],
+                "complexity_score": 5  # Default medium complexity
+            }
 
 
 class SpecificationGenerator:
@@ -471,10 +518,8 @@ class SpecificationGenerator:
                 "generator_version": "1.0",
                 "llm_model": "gpt-4",
                 "chunk_count": len(source_chunks),
-                "language_distribution": self._calculate_language_distribution(
-                    source_chunks
-                ),
             },
+            language_distribution=self._calculate_language_distribution(source_chunks),
         )
 
     def _calculate_language_distribution(

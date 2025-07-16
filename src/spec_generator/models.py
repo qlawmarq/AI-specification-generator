@@ -85,7 +85,7 @@ class PerformanceSettings(BaseModel):
     """Performance and rate limiting settings."""
 
     request_timeout: int = Field(
-        default=30, ge=1, description="Request timeout in seconds"
+        default=300, ge=1, description="Request timeout in seconds"
     )
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
     retry_delay: int = Field(
@@ -236,6 +236,24 @@ class ConfigLoader:
         if chunk_overlap := os.getenv("CHUNK_OVERLAP"):
             config_dict["chunk_overlap"] = int(chunk_overlap)
 
+        # Performance Settings
+        performance_dict = {}
+        if request_timeout := os.getenv("REQUEST_TIMEOUT"):
+            performance_dict["request_timeout"] = int(request_timeout)
+        if max_retries := os.getenv("MAX_RETRIES"):
+            performance_dict["max_retries"] = int(max_retries)
+        if retry_delay := os.getenv("RETRY_DELAY"):
+            performance_dict["retry_delay"] = int(retry_delay)
+        if rate_limit_rpm := os.getenv("RATE_LIMIT_RPM"):
+            performance_dict["rate_limit_rpm"] = int(rate_limit_rpm)
+        if batch_size := os.getenv("BATCH_SIZE"):
+            performance_dict["batch_size"] = int(batch_size)
+
+        if performance_dict:
+            config_dict["performance_settings"] = PerformanceSettings(
+                **performance_dict
+            )
+
         # Output Configuration
         if output_format := os.getenv("OUTPUT_FORMAT"):
             config_dict["output_format"] = output_format
@@ -270,4 +288,7 @@ class SpecificationOutput(BaseModel):
     processing_stats: ProcessingStats = Field(..., description="Processing statistics")
     metadata: dict[str, Union[str, int, float]] = Field(
         default_factory=dict, description="Additional metadata"
+    )
+    language_distribution: dict[str, int] = Field(
+        default_factory=dict, description="Programming language distribution"
     )

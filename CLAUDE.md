@@ -27,6 +27,37 @@
     - 1 edge case
     - 1 failure case
 
+#### CLI Command Testing Protocol
+
+Following TEST_REQ.md requirements, always test CLI commands comprehensively:
+
+- **Test all commands** in `src/spec_generator/cli.py`:
+
+  ```bash
+  # 1. config-info command
+  uv run python -m spec_generator.cli config-info
+
+  # 2. install-parsers command
+  uv run python -m spec_generator.cli install-parsers
+
+  # 3. generate-single command
+  uv run python -m spec_generator.cli generate-single test_file.py --output test-spec.md
+
+  # 4. generate command (with timeout)
+  uv run python -m spec_generator.cli generate src --output docs --project-name "プロジェクト名" --timeout 10
+
+  # 5. update command
+  uv run python -m spec_generator.cli update . --output spec-updates
+  ```
+
+- **Verify specification content quality**: Generated specifications must be well-formed Japanese documents
+- **Environment variable testing**: Verify configuration loading works correctly:
+  ```bash
+  export REQUEST_TIMEOUT=60
+  export BATCH_SIZE=5
+  uv run python -m spec_generator.cli config-info
+  ```
+
 ### Task Completion
 
 - **Use the TodoWrite tool** to track and manage tasks throughout development

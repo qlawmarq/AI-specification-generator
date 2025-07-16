@@ -106,9 +106,14 @@ class ChunkProcessor:
 
         try:
             if use_semantic and self.semantic_chunker:
-                # Use semantic chunking
-                semantic_chunks = await asyncio.get_event_loop().run_in_executor(
-                    None, self.semantic_chunker.split_text, content
+                # Use semantic chunking with timeout
+                # Reason: Apply timeout to prevent blocking on large content processing
+                timeout_seconds = 60  # Reasonable timeout for text chunking
+                semantic_chunks = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, self.semantic_chunker.split_text, content
+                    ),
+                    timeout=timeout_seconds
                 )
 
                 for _i, chunk_text in enumerate(semantic_chunks):

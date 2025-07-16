@@ -129,21 +129,6 @@ JSON形式で構造化して出力してください:
 #### 3.3.2 例外処理方式
 #### 3.3.3 エラーハンドリング
 
-## 4. 非機能要件
-### 4.1 性能要件
-### 4.2 セキュリティ要件
-### 4.3 可用性要件
-### 4.4 保守性要件
-
-## 5. 運用設計
-### 5.1 デプロイメント方式
-### 5.2 監視・ログ
-### 5.3 バックアップ・復旧
-
-## 6. 付録
-### 6.1 用語集
-### 6.2 参考資料
-
 ## 作成時の注意事項:
 1. 日本のIT業界で標準的に使用される用語を使用する
 2. 技術的な詳細は正確に記述する
@@ -347,7 +332,10 @@ class JapanesePromptHelper:
 
         formatted = []
         for func in functions:
-            params = ", ".join(func.get("parameters", []))
+            # Reason: Ensure parameters are strings before joining to avoid type errors
+            params_raw = func.get("parameters", [])
+            params_str = [str(p) if not isinstance(p, str) else p for p in params_raw]
+            params = ", ".join(params_str)
             formatted.append(
                 f"- **{func.get('name', 'unknown')}**({params}): {func.get('purpose', '目的不明')}"
             )
@@ -362,7 +350,10 @@ class JapanesePromptHelper:
 
         formatted = []
         for cls in classes:
-            methods = ", ".join(cls.get("methods", []))
+            # Reason: Ensure methods are strings before joining to avoid type errors
+            methods_raw = cls.get("methods", [])
+            methods_str = [str(m) if not isinstance(m, str) else m for m in methods_raw]
+            methods = ", ".join(methods_str)
             formatted.append(
                 f"- **{cls.get('name', 'unknown')}**: {cls.get('purpose', '目的不明')}\n"
                 f"  - メソッド: {methods}"

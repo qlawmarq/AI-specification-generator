@@ -10,7 +10,7 @@ import logging
 import subprocess
 import sys
 import time
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +74,17 @@ class TreeSitterInstaller:
     def check_tree_sitter_available(self) -> bool:
         """Check if tree-sitter is available in the environment."""
         try:
-            import tree_sitter
-            logger.info(f"Tree-sitter version {tree_sitter.__version__} found")
+            # CRITICAL: Use importlib.metadata instead of __version__
+            import importlib.metadata
+            version = importlib.metadata.version('tree-sitter')
+            logger.info(f"Tree-sitter version {version} found")
             return True
         except ImportError:
             logger.error("tree-sitter package not found. Please install it first:")
             logger.error("pip install tree-sitter")
+            return False
+        except Exception as e:
+            logger.error(f"Error checking tree-sitter version: {e}")
             return False
 
     def normalize_language_name(self, language: str) -> Optional[str]:
@@ -116,20 +121,32 @@ class TreeSitterInstaller:
             logger.debug(f"Error checking parser for {language}: {e}")
             return False
 
+    def _is_uv_environment(self) -> bool:
+        """Check if running in uv environment."""
+        try:
+            subprocess.run(["uv", "--version"], capture_output=True, check=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
     def install_parser_package(self, language: str) -> tuple[bool, str]:
-        """Install a specific parser package using pip."""
+        """Install a specific parser package using uv or pip."""
         package_name = LANGUAGE_PARSERS.get(language)
         if not package_name:
             return False, f"No package mapping for language: {language}"
 
         try:
-            logger.info(f"Installing {package_name} for {language}...")
+            # Detect uv environment and build appropriate command
+            if self._is_uv_environment():
+                cmd = ["uv", "add", package_name]
+                installer = "uv"
+            else:
+                cmd = [sys.executable, "-m", "pip", "install", package_name]
+                installer = "pip"
+                if self.force_reinstall:
+                    cmd.extend(["--force-reinstall", "--no-deps"])
 
-            # Build pip install command
-            cmd = [sys.executable, "-m", "pip", "install", package_name]
-
-            if self.force_reinstall:
-                cmd.extend(["--force-reinstall", "--no-deps"])
+            logger.info(f"Installing {package_name} using {installer}...")
 
             # Run installation
             result = subprocess.run(
@@ -247,12 +264,16 @@ class TreeSitterInstaller:
 
         return verification_results
 
-    def get_installation_summary(self) -> dict[str, any]:
+    def get_installation_summary(self) -> dict[str, Any]:
         """Get summary of installation results."""
         return {
             "total_attempted": len(self.installed_parsers),
-            "successful": sum(1 for success in self.installed_parsers.values() if success),
-            "failed": sum(1 for success in self.installed_parsers.values() if not success),
+            "successful": sum(
+                1 for success in self.installed_parsers.values() if success
+            ),
+            "failed": sum(
+                1 for success in self.installed_parsers.values() if not success
+            ),
             "errors": self.installation_errors.copy(),
             "installed_parsers": self.installed_parsers.copy(),
         }
@@ -330,7 +351,10 @@ def list_supported_languages() -> None:
     print("=" * 50)
 
     for language, package in LANGUAGE_PARSERS.items():
-        aliases = [alias for alias, target in LANGUAGE_ALIASES.items() if target == language]
+        aliases = [
+            alias for alias, target in LANGUAGE_ALIASES.items()
+            if target == language
+        ]
         alias_str = f" (aliases: {', '.join(aliases)})" if aliases else ""
         print(f"  {language:<12} -> {package}{alias_str}")
 
@@ -338,7 +362,7 @@ def list_supported_languages() -> None:
     print(f"Default core languages: {', '.join(DEFAULT_CORE_LANGUAGES)}")
 
 
-def main():
+def main() -> None:
     """Command-line interface for parser installation."""
     import argparse
 
@@ -417,7 +441,9 @@ Examples:
         )
     else:
         # Default behavior - install core languages
-        logger.info("No specific languages specified, installing default core languages...")
+        logger.info(
+            "No specific languages specified, installing default core languages..."
+        )
         success = install_default_parsers(force=args.force)
 
     if success:

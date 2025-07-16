@@ -127,6 +127,9 @@ def generate(
     estimate_only: bool = typer.Option(
         False, "--estimate-only", help="Only estimate processing time and exit"
     ),
+    timeout_minutes: Optional[int] = typer.Option(
+        None, "--timeout", help="Overall timeout in minutes"
+    ),
 ):
     """
     Generate complete specification documentation from a codebase.
@@ -179,17 +182,35 @@ def generate(
             raise typer.Exit()
 
         # Run generation
-        asyncio.run(
-            _run_generation(
-                processor,
-                repo_path,
-                output,
-                project_name,
-                use_semantic_chunking,
-                use_ast_chunking,
-                max_files,
+        timeout_seconds = timeout_minutes * 60 if timeout_minutes else None
+
+        if timeout_seconds:
+            asyncio.run(
+                asyncio.wait_for(
+                    _run_generation(
+                        processor,
+                        repo_path,
+                        output,
+                        project_name,
+                        use_semantic_chunking,
+                        use_ast_chunking,
+                        max_files,
+                    ),
+                    timeout=timeout_seconds
+                )
             )
-        )
+        else:
+            asyncio.run(
+                _run_generation(
+                    processor,
+                    repo_path,
+                    output,
+                    project_name,
+                    use_semantic_chunking,
+                    use_ast_chunking,
+                    max_files,
+                )
+            )
 
     except KeyboardInterrupt:
         console.print("\n[red]Operation cancelled by user[/red]")
@@ -635,6 +656,7 @@ def _display_config_info(config: SpecificationConfig):
     table.add_row("Chunk Overlap", str(config.chunk_overlap))
     table.add_row("Max Memory (MB)", str(config.max_memory_mb))
     table.add_row("Parallel Processes", str(config.parallel_processes))
+    table.add_row("Request Timeout (sec)", str(config.performance_settings.request_timeout))
     table.add_row("Output Format", config.output_format)
     table.add_row("OpenAI API Key", "Set" if config.openai_api_key else "Not set")
     table.add_row(
