@@ -5,7 +5,6 @@ This module provides the SpecificationUpdater that can merge semantic changes
 into existing specification documents while preserving structure and content.
 """
 
-import json
 import logging
 import re
 from datetime import datetime

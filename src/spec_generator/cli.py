@@ -15,12 +15,9 @@ from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
     Progress,
     SpinnerColumn,
-    TaskProgressColumn,
     TextColumn,
 )
 from rich.table import Table
@@ -317,7 +314,7 @@ async def _run_update(
         ) as progress:
             task = progress.add_task("Updating specification...", total=None)
 
-            change_data = [change.dict() for change in changes]
+            change_data = [change.model_dump(mode='json') for change in changes]
             output_path = output / f"updated_specification_{int(time.time())}.md"
 
             await generator.update_specification(

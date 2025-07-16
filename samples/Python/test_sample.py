@@ -67,6 +67,42 @@ class Calculator:
         self.history.append(f"{x}³ = {result}")
         return result
 
+    def power(self, base: Union[int, float], exponent: Union[int, float]) -> Union[int, float]:
+        """
+        べき乗計算を行います。
+
+        Args:
+            base: 底
+            exponent: 指数
+
+        Returns:
+            計算結果
+        """
+        result = base ** exponent
+        self.history.append(f"{base}^{exponent} = {result}")
+        return result
+
+    def root(self, x: Union[int, float], n: Union[int, float] = 2) -> Union[int, float]:
+        """
+        n乗根を計算します。
+
+        Args:
+            x: 根を計算する数値
+            n: 根の次数（デフォルト: 2）
+
+        Returns:
+            x の n乗根
+
+        Raises:
+            ValueError: x が負の数で n が偶数の場合
+        """
+        if x < 0 and n % 2 == 0:
+            raise ValueError("負の数の偶数乗根は実数では計算できません")
+        
+        result = x ** (1 / n)
+        self.history.append(f"root({x}, {n}) = {result}")
+        return result
+
     def subtract(self, a: Union[int, float], b: Union[int, float]) -> Union[int, float]:
         """
         二つの数値を引き算します。

@@ -5,6 +5,7 @@ This module defines Pydantic models for type safety and configuration management
 """
 
 import os
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -274,6 +275,61 @@ class ProcessingStats(BaseModel):
     errors_encountered: list[str] = Field(
         default_factory=list, description="List of errors"
     )
+
+
+@dataclass
+class ClassStructure:
+    """Represents a complete class with all its methods and attributes."""
+    name: str
+    methods: list
+    attributes: list
+    docstring: Optional[str]
+    start_line: int
+    end_line: int
+    file_path: str
+
+    def to_unified_chunk(self) -> str:
+        """Convert class structure to unified code chunk."""
+        # Construct a unified representation of the class
+        lines = []
+        if self.docstring:
+            lines.append(f'"""\n{self.docstring}\n"""')
+
+        lines.append(f"class {self.name}:")
+
+        # Add methods
+        for method in self.methods:
+            method_content = getattr(method, 'content', str(method))
+            lines.append(f"    {method_content}")
+
+        # Add attributes info
+        for attr in self.attributes:
+            attr_content = getattr(attr, 'content', str(attr))
+            lines.append(f"    # Attribute: {attr_content}")
+
+        return "\n".join(lines)
+
+    def get_method_names(self) -> list[str]:
+        """Get list of method names."""
+        return [getattr(method, 'name', str(method)) for method in self.methods]
+
+
+@dataclass
+class EnhancedCodeChunk:
+    """Enhanced code chunk with class structure context."""
+    original_chunk: "CodeChunk"
+    class_structures: list[ClassStructure]
+    is_complete_class: bool
+    parent_class: Optional[str]
+
+    def get_unified_content(self) -> str:
+        """Get unified content that preserves class structure."""
+        if self.is_complete_class and self.class_structures:
+            # Return unified class representation
+            return "\n\n".join([
+                cls.to_unified_chunk() for cls in self.class_structures
+            ])
+        return self.original_chunk.content
 
 
 class SpecificationOutput(BaseModel):
