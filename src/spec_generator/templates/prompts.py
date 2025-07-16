@@ -76,14 +76,19 @@ JSON形式で構造化して出力してください:
 }}
 ```
 
-分析は技術的に正確で、日本のIT業界の標準的な表現を使用してください。"""
+分析は技術的に正確で、日本のIT業界の標準的な表現を使用してください。""",
     )
 
     # Japanese Specification Generation Prompt (Stage 2)
     JAPANESE_SPEC_PROMPT = PromptTemplate(
-        input_variables=["analysis_results", "document_title", "project_overview", "technical_requirements"],
+        input_variables=[
+            "analysis_results",
+            "document_title",
+            "project_overview",
+            "technical_requirements",
+        ],
         template="""あなたは日本のIT業界で活躍する技術文書作成のエキスパートです。
-以下の分析結果を基に、日本のIT業界標準フォーマットでの詳細設計書を作成してください。
+以下の分析結果を基に、簡潔で実用的な詳細設計書を作成してください。
 
 ## プロジェクト概要:
 {project_overview}
@@ -98,149 +103,71 @@ JSON形式で構造化して出力してください:
 {document_title}
 
 ## 出力形式:
-以下の構造に従って、詳細設計書をMarkdown形式で作成してください：
+以下の6つのセクションに従って、詳細設計書をMarkdown形式で作成してください：
 
 # {document_title}
 
 ## 1. 概要
-### 1.1 文書の目的
-### 1.2 システム概要
-### 1.3 対象読者
 
-## 2. システム構成
-### 2.1 全体アーキテクチャ
-### 2.2 主要コンポーネント
-### 2.3 技術スタック
+- システム概要
+- 対象範囲（ファイル）
+- 前提条件・制約事項（もし必要な場合）
 
-## 3. 詳細設計
-### 3.1 モジュール設計
-#### 3.1.1 [モジュール名]
-- **目的**: モジュールの役割と責務
-- **主要機能**: 提供する機能の一覧
-- **インターフェース**: 外部とのやり取り
-- **内部構造**: クラス・関数の構成
+## 2. アーキテクチャ設計
 
-### 3.2 データ設計
-#### 3.2.1 データ構造
-#### 3.2.2 データフロー
+- システム構成図（Mermaid classDiagramで作成）
+- 処理フロー概要
+- 主要コンポーネント間の関係
+- 関連するファイルや処理・呼び出されるメソッド・呼び出し元のメソッド
 
-### 3.3 処理設計
-#### 3.3.1 主要処理フロー
-#### 3.3.2 例外処理方式
-#### 3.3.3 エラーハンドリング
+## 3. クラス・メソッド設計
 
-## 作成時の注意事項:
-1. 日本のIT業界で標準的に使用される用語を使用する
-2. 技術的な詳細は正確に記述する
-3. 図表は必要に応じてマークダウン形式で挿入する
-4. コード例は適切にフォーマットする
-5. 可読性を重視し、適切な見出し構造を使用する
-6. 業務システムの設計書として十分な詳細度を保つ
+### 3.1 クラス・メソッド一覧表
 
-それでは、詳細設計書を作成してください。"""
-    )
+| クラス名 | 役割 | 主要メソッド | 備考 |
+| -------- | ---- | ------------ | ---- |
 
-    # Module Summary Prompt
-    MODULE_SUMMARY_PROMPT = PromptTemplate(
-        input_variables=["module_analyses", "module_name"],
-        template="""以下は{module_name}モジュールの各ファイルの分析結果です。
-これらを統合して、モジュール全体の概要を作成してください。
+### 3.2 クラス・メソッド詳細仕様
 
-## ファイル別分析結果:
-{module_analyses}
+各クラス・メソッドについて以下を記載：
 
-## 出力要件:
-以下の形式でモジュールサマリーを作成してください：
+- クラス概要
+- 属性一覧（型、初期値、説明）
+- メソッド仕様（引数、戻り値、処理概要、例外）
+- 継承・実装関係
 
-### {module_name} モジュール概要
+## 4. インターフェース設計
 
-**主要責務**: モジュールの主な責任
+- API 仕様
+- 入出力データ形式
+- エラーレスポンス仕様
 
-**提供機能**:
-- 機能1: 説明
-- 機能2: 説明
+## 5. データ設計
 
-**内部構成**:
-- ファイル1: 役割
-- ファイル2: 役割
+- データ構造
+- データベーステーブル設計（該当する場合）
+- データフロー図（Mermaid flowchartで作成）
 
-**外部依存関係**:
-- 依存関係1: 用途
-- 依存関係2: 用途
+## 6. 処理設計
 
-**設計パターン**:
-使用されている主要な設計パターンとその適用理由
+### 6.1 主要処理フロー
 
-**技術的特徴**:
-- 特徴1
-- 特徴2
+- シーケンス図での表現（Mermaid sequenceDiagramで作成）
+- 処理ステップの詳細説明
 
-**注意点・制約事項**:
-実装上の注意点や制約事項があれば記載
+## 【重要な注意事項】:
+1. 日本語で記述してください
+2. 図表は Mermaid 記法で作成してください
+3. 実装の詳細まで踏み込んで説明してください
+4. 保守性・拡張性の観点も含めてください
+5. クラス図は Mermaid classDiagram で作成
+6. シーケンス図は Mermaid sequenceDiagram で作成
+7. フローチャートは Mermaid flowchart で作成
+8. 必要に応じて ER 図も含める
+9. 簡潔で実用的な内容にし、冗長な記述は避ける
+10. 各セクションは必須項目のみに絞り込む
 
-日本のIT業界標準の表現を使用し、技術的に正確な情報を提供してください。"""
-    )
-
-    # API Documentation Prompt
-    API_DOC_PROMPT = PromptTemplate(
-        input_variables=["function_analysis", "class_analysis"],
-        template="""以下の関数・クラス分析結果からAPI仕様書を作成してください。
-
-## 関数分析結果:
-{function_analysis}
-
-## クラス分析結果:
-{class_analysis}
-
-## 出力形式:
-Markdown形式でAPI仕様書を作成してください：
-
-# API仕様書
-
-## 関数一覧
-
-### 関数名
-**概要**: 関数の概要説明
-
-**パラメータ**:
-| パラメータ名 | 型 | 必須 | 説明 |
-|-------------|---|-----|------|
-| param1 | string | Yes | パラメータの説明 |
-
-**戻り値**:
-| 型 | 説明 |
-|----|------|
-| return_type | 戻り値の説明 |
-
-**使用例**:
-```python
-# 使用例のコード
-```
-
-**例外**:
-- Exception1: 発生条件
-- Exception2: 発生条件
-
-## クラス一覧
-
-### クラス名
-**概要**: クラスの概要説明
-
-**コンストラクタ**:
-パラメータと初期化処理の説明
-
-**メソッド**:
-各メソッドの詳細仕様
-
-**属性**:
-クラス属性の説明
-
-**使用例**:
-```python
-# 使用例のコード
-```
-
-日本のIT業界標準のAPI仕様書フォーマットに従って作成してください。"""
+それでは、詳細設計書を作成してください。""",
     )
 
     # Update Specification Prompt
@@ -271,7 +198,7 @@ Markdown形式でAPI仕様書を作成してください：
 |------|----------|----------|----------|
 | YYYY-MM-DD | セクション名 | 変更の説明 | 変更理由 |
 
-更新された仕様書を出力してください。"""
+更新された仕様書を出力してください。""",
     )
 
     # Section Update Prompt (for updater.py)
@@ -291,7 +218,7 @@ Markdown形式でAPI仕様書を作成してください：
 3. 日本語の技術文書として適切な表現を使用する
 4. マークダウン形式で出力する
 
-更新されたセクション内容を出力してください："""
+更新されたセクション内容を出力してください：""",
     )
 
     # System Overview Prompt (for generator.py)
@@ -299,25 +226,7 @@ Markdown形式でAPI仕様書を作成してください：
         input_variables=["module_count", "function_count", "class_count"],
         template="""このシステムは{module_count}個のモジュールで構成され、
 {function_count}個の関数と{class_count}個のクラスを含んでいます。
-各モジュールは明確な責務を持ち、適切に分離された設計となっています。"""
-    )
-
-    # Document Section Prompt (for japanese_spec.py)
-    DOCUMENT_SECTION_PROMPT = PromptTemplate(
-        input_variables=["architecture_overview", "component_list", "tech_list"],
-        template="""## 2. システム構成
-
-### 2.1 全体アーキテクチャ
-
-{architecture_overview}
-
-### 2.2 主要コンポーネント
-
-{component_list}
-
-### 2.3 技術スタック
-
-{tech_list}"""
+各モジュールは明確な責務を持ち、適切に分離された設計となっています。""",
     )
 
 
@@ -371,7 +280,9 @@ class JapanesePromptHelper:
         for dep in dependencies:
             dep_type = dep.get("type", "unknown")
             usage = dep.get("usage", "用途不明")
-            formatted.append(f"- **{dep.get('name', 'unknown')}** ({dep_type}): {usage}")
+            formatted.append(
+                f"- **{dep.get('name', 'unknown')}** ({dep_type}): {usage}"
+            )
 
         return "\n".join(formatted)
 
@@ -397,7 +308,9 @@ class JapanesePromptHelper:
         # Dependencies
         if dependencies := analysis_data.get("dependencies"):
             summary_parts.append("**依存関係**:")
-            summary_parts.append(JapanesePromptHelper.format_dependency_list(dependencies))
+            summary_parts.append(
+                JapanesePromptHelper.format_dependency_list(dependencies)
+            )
 
         # Data flow
         if data_flow := analysis_data.get("data_flow"):
@@ -408,50 +321,3 @@ class JapanesePromptHelper:
             summary_parts.append(f"**エラーハンドリング**: {error_handling}")
 
         return "\n\n".join(summary_parts)
-
-
-# Commonly used Japanese IT terms for consistency
-JAPANESE_TERMS = {
-    # Architecture terms
-    "architecture": "アーキテクチャ",
-    "component": "コンポーネント",
-    "module": "モジュール",
-    "interface": "インターフェース",
-    "framework": "フレームワーク",
-
-    # Design terms
-    "design_pattern": "デザインパターン",
-    "specification": "仕様書",
-    "requirement": "要件",
-    "implementation": "実装",
-    "configuration": "設定",
-
-    # Technical terms
-    "database": "データベース",
-    "api": "API",
-    "service": "サービス",
-    "function": "関数",
-    "class": "クラス",
-    "method": "メソッド",
-    "parameter": "パラメータ",
-    "return_value": "戻り値",
-    "exception": "例外",
-    "error_handling": "エラーハンドリング",
-
-    # Process terms
-    "process": "プロセス",
-    "workflow": "ワークフロー",
-    "deployment": "デプロイメント",
-    "monitoring": "監視",
-    "logging": "ログ",
-    "backup": "バックアップ",
-    "recovery": "復旧",
-
-    # Quality terms
-    "performance": "性能",
-    "security": "セキュリティ",
-    "availability": "可用性",
-    "maintainability": "保守性",
-    "scalability": "拡張性",
-    "reliability": "信頼性",
-}

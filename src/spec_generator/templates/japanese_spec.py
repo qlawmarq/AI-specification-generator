@@ -1,14 +1,12 @@
 """
 Japanese specification document templates.
 
-This module provides templates and utilities for generating Japanese IT industry
+This module provides templates for generating Japanese IT industry
 standard specification documents with proper formatting and structure.
 """
 
 from datetime import datetime
 from typing import Any
-
-from .prompts import PromptTemplates
 
 
 class JapaneseSpecificationTemplate:
@@ -28,281 +26,6 @@ class JapaneseSpecificationTemplate:
 **最終更新日**: {self.creation_date}
 
 ---
-"""
-
-    def generate_toc(self, sections: list[str]) -> str:
-        """Generate table of contents."""
-        toc_lines = ["## 目次\n"]
-
-        for i, section in enumerate(sections, 1):
-            toc_lines.append(f"{i}. [{section}](#{self._to_anchor(section)})")
-
-        toc_lines.append("\n---\n")
-        return "\n".join(toc_lines)
-
-    def _to_anchor(self, text: str) -> str:
-        """Convert section text to markdown anchor."""
-        # Simple conversion - in real implementation, should handle Japanese properly
-        return text.lower().replace(" ", "-").replace(".", "")
-
-    def generate_overview_section(
-        self, purpose: str, target_audience: str, system_overview: str
-    ) -> str:
-        """Generate overview section."""
-        return f"""## 1. 概要
-
-### 1.1 文書の目的
-
-{purpose}
-
-### 1.2 システム概要
-
-{system_overview}
-
-### 1.3 対象読者
-
-{target_audience}
-
-### 1.4 前提条件
-
-本文書は以下の前提条件の下で作成されています：
-
-- システムの基本設計が完了していること
-- 要件定義書が承認されていること
-- 開発チームが技術仕様を理解していること
-
-"""
-
-    def generate_architecture_section(
-        self,
-        architecture_overview: str,
-        components: list[dict[str, str]],
-        tech_stack: list[str],
-    ) -> str:
-        """Generate system architecture section."""
-        component_list = []
-        for comp in components:
-            component_list.append(
-                f"- **{comp.get('name', 'Unknown')}**: {comp.get('description', 'No description')}"
-            )
-
-        tech_list = []
-        for tech in tech_stack:
-            tech_list.append(f"- {tech}")
-
-        return PromptTemplates.DOCUMENT_SECTION_PROMPT.format(
-            architecture_overview=architecture_overview,
-            component_list=chr(10).join(component_list),
-            tech_list=chr(10).join(tech_list),
-        )
-
-    def generate_module_section(
-        self, module_name: str, module_data: dict[str, Any]
-    ) -> str:
-        """Generate detailed module section."""
-        # Extract module information
-        purpose = module_data.get("purpose", "目的が定義されていません")
-        functions = module_data.get("functions", [])
-        classes = module_data.get("classes", [])
-        dependencies = module_data.get("dependencies", [])
-
-        # Format functions
-        function_list = []
-        for func in functions:
-            params = ", ".join(func.get("inputs", []))
-            function_list.append(
-                f"""
-#### {func.get('name', 'unknown')}
-
-**目的**: {func.get('purpose', '未定義')}
-**パラメータ**: {params}
-**戻り値**: {func.get('outputs', '未定義')}
-**複雑度**: {func.get('complexity', '未評価')}
-
-**処理概要**:
-{func.get('business_logic', 'ビジネスロジックが定義されていません')}
-"""
-            )
-
-        # Format classes
-        class_list = []
-        for cls in classes:
-            methods = ", ".join(cls.get("methods", []))
-            attributes = ", ".join(cls.get("attributes", []))
-            class_list.append(
-                f"""
-#### {cls.get('name', 'unknown')}
-
-**目的**: {cls.get('purpose', '未定義')}
-**メソッド**: {methods}
-**属性**: {attributes}
-**デザインパターン**: {cls.get('design_pattern', '適用なし')}
-"""
-            )
-
-        # Format dependencies
-        dep_list = []
-        for dep in dependencies:
-            dep_type = "内部" if dep.get("type") == "internal" else "外部"
-            dep_list.append(
-                f"- **{dep.get('name')}** ({dep_type}): {dep.get('usage', '用途不明')}"
-            )
-
-        return f"""### 3.1.{len(function_list) + len(class_list)} {module_name}
-
-#### 概要
-{purpose}
-
-#### 主要機能
-{"".join(function_list)}
-
-#### クラス設計
-{"".join(class_list)}
-
-#### 依存関係
-{chr(10).join(dep_list) if dep_list else "依存関係はありません"}
-
-"""
-
-    def generate_data_design_section(
-        self, data_structures: list[dict[str, Any]]
-    ) -> str:
-        """Generate data design section."""
-        structures = []
-        for struct in data_structures:
-            fields = []
-            for field in struct.get("fields", []):
-                fields.append(
-                    f"| {field.get('name')} | {field.get('type')} | {field.get('description')} |"
-                )
-
-            field_table = (
-                "| フィールド名 | 型 | 説明 |\n|-------------|---|------|\n"
-                + "\n".join(fields)
-            )
-
-            structures.append(
-                f"""
-#### {struct.get('name', 'Unknown')}
-
-**用途**: {struct.get('purpose', '未定義')}
-
-{field_table}
-"""
-            )
-
-        return f"""### 3.2 データ設計
-
-#### 3.2.1 データ構造
-{"".join(structures)}
-
-#### 3.2.2 データフロー
-
-データは以下の流れで処理されます：
-
-1. 入力データの受信・検証
-2. ビジネスロジックによる処理
-3. データ変換・加工
-4. 出力データの生成
-5. 結果の返却・保存
-
-"""
-
-    def generate_processing_section(
-        self, main_flows: list[str], error_handling: str
-    ) -> str:
-        """Generate processing design section."""
-        flow_list = []
-        for i, flow in enumerate(main_flows, 1):
-            flow_list.append(f"{i}. {flow}")
-
-        return f"""### 3.3 処理設計
-
-#### 3.3.1 主要処理フロー
-
-{chr(10).join(flow_list)}
-
-#### 3.3.2 例外処理方式
-
-{error_handling}
-
-#### 3.3.3 エラーハンドリング
-
-システムでは以下のエラーハンドリング戦略を採用します：
-
-- **予期される例外**: try-catch文による適切な処理
-- **予期されない例外**: ログ出力と安全な縮退処理
-- **システム例外**: 監視システムへの通知と復旧処理
-- **ユーザーエラー**: 分かりやすいエラーメッセージの表示
-
-"""
-
-    def generate_nonfunctional_section(
-        self, performance: str, security: str, availability: str, maintainability: str
-    ) -> str:
-        """Generate non-functional requirements section."""
-        return f"""## 4. 非機能要件
-
-### 4.1 性能要件
-
-{performance}
-
-### 4.2 セキュリティ要件
-
-{security}
-
-### 4.3 可用性要件
-
-{availability}
-
-### 4.4 保守性要件
-
-{maintainability}
-
-"""
-
-    def generate_operations_section(
-        self, deployment: str, monitoring: str, backup: str
-    ) -> str:
-        """Generate operations section."""
-        return f"""## 5. 運用設計
-
-### 5.1 デプロイメント方式
-
-{deployment}
-
-### 5.2 監視・ログ
-
-{monitoring}
-
-### 5.3 バックアップ・復旧
-
-{backup}
-
-"""
-
-    def generate_appendix_section(
-        self, terms: dict[str, str], references: list[str]
-    ) -> str:
-        """Generate appendix section."""
-        term_list = []
-        for term, definition in terms.items():
-            term_list.append(f"**{term}**: {definition}")
-
-        ref_list = []
-        for ref in references:
-            ref_list.append(f"- {ref}")
-
-        return f"""## 6. 付録
-
-### 6.1 用語集
-
-{chr(10).join(term_list)}
-
-### 6.2 参考資料
-
-{chr(10).join(ref_list)}
-
 """
 
     def generate_change_history_section(self, changes: list[dict[str, str]]) -> str:
@@ -332,8 +55,317 @@ class JapaneseSpecificationTemplate:
 
 """
 
+    def _generate_overview_section(self, document_data: dict[str, Any]) -> str:
+        """Generate overview section."""
+        overview = document_data.get("overview", {})
+        system_overview = overview.get(
+            "system_overview", "システム概要が定義されていません"
+        )
+
+        # Extract target files from modules
+        target_files = []
+        if modules := document_data.get("modules"):
+            for module_name in modules.keys():
+                target_files.append(f"- {module_name}")
+
+        target_files_str = (
+            "\n".join(target_files)
+            if target_files
+            else "- 対象ファイルが定義されていません"
+        )
+
+        constraints = overview.get("constraints", "特になし")
+
+        return f"""## 1. 概要
+
+- **システム概要**: {system_overview}
+- **対象範囲（ファイル）**:
+{target_files_str}
+- **前提条件・制約事項（もし必要な場合）**: {constraints}"""
+
+    def _generate_architecture_section(self, document_data: dict[str, Any]) -> str:
+        """Generate architecture section with Mermaid diagrams."""
+        architecture = document_data.get("architecture", {})
+        modules = document_data.get("modules", {})
+
+        # Generate Mermaid class diagram
+        mermaid_diagram = "```mermaid\nclassDiagram\n"
+        for _module_name, module_data in modules.items():
+            classes = module_data.get("classes", [])
+            for cls in classes:
+                class_name = cls.get("name", "UnknownClass")
+                methods = cls.get("methods", [])
+                mermaid_diagram += f"    class {class_name} {{\n"
+                for method in methods[:3]:  # Limit to first 3 methods
+                    mermaid_diagram += f"        +{method}()\n"
+                mermaid_diagram += "    }\n"
+        mermaid_diagram += "```"
+
+        # Component relationships
+        component_relationships = []
+        for module_name, module_data in modules.items():
+            dependencies = module_data.get("dependencies", [])
+            for dep in dependencies:
+                if dep.get("type") == "internal":
+                    dep_name = dep.get("name")
+                    dep_usage = dep.get("usage", "依存関係")
+                    component_relationships.append(
+                        f"- **{module_name}** → **{dep_name}**: {dep_usage}"
+                    )
+
+        relationships_str = (
+            "\n".join(component_relationships)
+            if component_relationships
+            else "- 主要コンポーネント間の関係が定義されていません"
+        )
+
+        return f"""## 2. アーキテクチャ設計
+
+### システム構成図
+{mermaid_diagram}
+
+### 処理フロー概要
+{architecture.get("overview", "システム全体の処理フローを記述")}
+
+### 主要コンポーネント間の関係
+{relationships_str}
+
+### 関連するファイルや処理・呼び出されるメソッド・呼び出し元のメソッド
+{self._generate_method_relationships(modules)}"""
+
+    def _generate_class_method_section(self, document_data: dict[str, Any]) -> str:
+        """Generate class and method design section."""
+        modules = document_data.get("modules", {})
+
+        # Generate class/method table
+        table_rows = []
+        detailed_specs = []
+
+        for _module_name, module_data in modules.items():
+            # Functions
+            functions = module_data.get("functions", [])
+            for func in functions:
+                func_name = func.get("name", "unknown")
+                purpose = func.get("purpose", "未定義")
+                main_methods = ", ".join(func.get("inputs", [])[:2])
+                remarks = f"複雑度: {func.get('complexity', 'medium')}"
+                table_rows.append(
+                    f"| {func_name} (関数) | {purpose} | {main_methods} | {remarks} |"
+                )
+
+            # Classes
+            classes = module_data.get("classes", [])
+            for cls in classes:
+                cls_name = cls.get("name", "unknown")
+                purpose = cls.get("purpose", "未定義")
+                methods = ", ".join(cls.get("methods", [])[:3])
+                pattern = cls.get("design_pattern", "なし")
+                table_rows.append(
+                    f"| {cls_name} | {purpose} | {methods} | パターン: {pattern} |"
+                )
+
+                # Add detailed specification
+                attributes = ", ".join(cls.get("attributes", []))
+                detailed_specs.append(
+                    f"""
+#### {cls_name}
+
+**クラス概要**: {purpose}
+
+**属性一覧**: {attributes if attributes else "属性が定義されていません"}
+
+**メソッド仕様**:
+{self._format_method_specs(cls.get("methods", []))}
+
+**継承・実装関係**: {cls.get("inheritance", "なし")}"""
+                )
+
+        table_content = (
+            "\n".join(table_rows)
+            if table_rows
+            else "| 未定義 | 未定義 | 未定義 | 未定義 |"
+        )
+        detailed_content = (
+            "\n".join(detailed_specs)
+            if detailed_specs
+            else "詳細仕様が定義されていません"
+        )
+
+        return f"""## 3. クラス・メソッド設計
+
+### 3.1 クラス・メソッド一覧表
+
+| クラス名 | 役割 | 主要メソッド | 備考 |
+| -------- | ---- | ------------ | ---- |
+{table_content}
+
+### 3.2 クラス・メソッド詳細仕様
+{detailed_content}"""
+
+    def _generate_interface_section(self, document_data: dict[str, Any]) -> str:
+        """Generate interface design section."""
+        modules = document_data.get("modules", {})
+
+        # Extract API-like functions
+        api_specs = []
+        for _module_name, module_data in modules.items():
+            functions = module_data.get("functions", [])
+            for func in functions:
+                func_name = func.get("name", "").lower()
+                func_purpose = func.get("purpose", "").lower()
+                if "api" in func_name or "interface" in func_purpose:
+                    inputs = func.get("inputs", [])
+                    outputs = func.get("outputs", "未定義")
+                    api_specs.append(
+                        f"""
+### {func.get("name", "未定義")}
+
+**入力データ形式**: {", ".join(inputs) if inputs else "パラメータなし"}
+**出力データ形式**: {outputs}
+**エラーレスポンス仕様**: 標準的なエラーハンドリングを適用"""
+                    )
+
+        api_content = (
+            "\n".join(api_specs)
+            if api_specs
+            else """
+### 標準的なインターフェース
+
+**入力データ形式**: 各関数の仕様に従う
+**出力データ形式**: 各関数の戻り値仕様に従う
+**エラーレスポンス仕様**: 例外処理による標準的なエラーハンドリング"""
+        )
+
+        return f"""## 4. インターフェース設計
+{api_content}"""
+
+    def _generate_data_design_section(self, document_data: dict[str, Any]) -> str:
+        """Generate data design section."""
+        modules = document_data.get("modules", {})
+
+        # Extract data structures
+        data_structures = []
+        for _module_name, module_data in modules.items():
+            classes = module_data.get("classes", [])
+            for cls in classes:
+                attributes = cls.get("attributes", [])
+                if attributes:
+                    attr_list = "\n".join(
+                        [f"- {attr}: データ型未定義" for attr in attributes]
+                    )
+                    data_structures.append(
+                        f"""
+### {cls.get("name", "未定義")}
+**用途**: {cls.get("purpose", "データ構造")}
+**フィールド**:
+{attr_list}"""
+                    )
+
+        structures_content = (
+            "\n".join(data_structures)
+            if data_structures
+            else "データ構造が定義されていません"
+        )
+
+        # Generate Mermaid ER diagram if applicable
+        er_diagram = ""
+        if data_structures:
+            er_diagram = """
+### データフロー図
+```mermaid
+flowchart TD
+    A[入力データ] --> B[データ処理]
+    B --> C[出力データ]
+    B --> D[データ保存]
+```"""
+
+        return f"""## 5. データ設計
+
+### データ構造
+{structures_content}
+
+### データベーステーブル設計（該当する場合）
+現在のシステムではデータベーステーブルは使用されていません
+{er_diagram}"""
+
+    def _generate_processing_section(self, document_data: dict[str, Any]) -> str:
+        """Generate processing design section with Mermaid sequence diagrams."""
+        modules = document_data.get("modules", {})
+
+        # Generate sequence diagram
+        sequence_diagram = (
+            "```mermaid\n"
+            "sequenceDiagram\n"
+            "    participant User\n"
+            "    participant System\n"
+        )
+
+        # Add main processing flow
+        main_functions = []
+        for _module_name, module_data in modules.items():
+            functions = module_data.get("functions", [])
+            main_functions.extend([f.get("name", "unknown") for f in functions[:2]])
+
+        step_num = 1
+        for func in main_functions[:4]:  # Limit to 4 steps
+            sequence_diagram += f"    User->>System: {step_num}. {func}を実行\n"
+            sequence_diagram += f"    System-->>User: {step_num}. 処理結果を返却\n"
+            step_num += 1
+
+        sequence_diagram += "```"
+
+        # Processing steps
+        processing_steps = []
+        for i, func in enumerate(main_functions[:5], 1):
+            processing_steps.append(f"{i}. **{func}**: 主要な処理ロジックを実行")
+
+        steps_content = (
+            "\n".join(processing_steps)
+            if processing_steps
+            else "1. システムの主要処理を実行"
+        )
+
+        return f"""## 6. 処理設計
+
+### 6.1 主要処理フロー
+
+#### シーケンス図での表現
+{sequence_diagram}
+
+#### 処理ステップの詳細説明
+{steps_content}"""
+
+    def _generate_method_relationships(self, modules: dict[str, Any]) -> str:
+        """Generate method relationship descriptions."""
+        relationships = []
+        for module_name, module_data in modules.items():
+            functions = module_data.get("functions", [])
+            for func in functions[:3]:  # Limit to first 3 functions
+                func_name = func.get("name", "unknown")
+                func_purpose = func.get("purpose", "処理を実行")
+                relationships.append(
+                    f"- **{func_name}** (in {module_name}): {func_purpose}"
+                )
+
+        return (
+            "\n".join(relationships)
+            if relationships
+            else "- メソッド関係が定義されていません"
+        )
+
+    def _format_method_specs(self, methods: list[str]) -> str:
+        """Format method specifications."""
+        if not methods:
+            return "メソッドが定義されていません"
+
+        specs = []
+        for method in methods[:3]:  # Limit to first 3 methods
+            specs.append(f"- **{method}**: 処理概要、引数、戻り値、例外を記述")
+
+        return "\n".join(specs)
+
     def generate_complete_document(self, document_data: dict[str, Any]) -> str:
-        """Generate complete specification document."""
+        """Generate simplified specification document with 6-section structure."""
         sections = []
 
         # Header
@@ -341,176 +373,29 @@ class JapaneseSpecificationTemplate:
             self.generate_header(document_data.get("document_type", "詳細設計書"))
         )
 
-        # Table of Contents
-        toc_sections = [
-            "概要",
-            "システム構成",
-            "詳細設計",
-            "非機能要件",
-            "運用設計",
-            "付録",
-        ]
-        sections.append(self.generate_toc(toc_sections))
+        # 1. 概要
+        sections.append(self._generate_overview_section(document_data))
 
-        # Overview
-        if overview := document_data.get("overview"):
-            sections.append(
-                self.generate_overview_section(
-                    overview.get("purpose", ""),
-                    overview.get("target_audience", "開発チーム、運用チーム"),
-                    overview.get("system_overview", ""),
-                )
-            )
+        # 2. アーキテクチャ設計
+        sections.append(self._generate_architecture_section(document_data))
 
-        # Architecture
-        if architecture := document_data.get("architecture"):
-            sections.append(
-                self.generate_architecture_section(
-                    architecture.get("overview", ""),
-                    architecture.get("components", []),
-                    architecture.get("tech_stack", []),
-                )
-            )
+        # 3. クラス・メソッド設計
+        sections.append(self._generate_class_method_section(document_data))
 
-        # Detailed Design
-        sections.append("## 3. 詳細設計\n")
+        # 4. インターフェース設計
+        sections.append(self._generate_interface_section(document_data))
 
-        # Modules
-        if modules := document_data.get("modules"):
-            sections.append("### 3.1 モジュール設計\n")
-            for module_name, module_data in modules.items():
-                sections.append(self.generate_module_section(module_name, module_data))
+        # 5. データ設計
+        sections.append(self._generate_data_design_section(document_data))
 
-        # Data Design
-        if data_design := document_data.get("data_design"):
-            sections.append(
-                self.generate_data_design_section(data_design.get("structures", []))
-            )
+        # 6. 処理設計
+        sections.append(self._generate_processing_section(document_data))
 
-        # Processing Design
-        if processing := document_data.get("processing"):
-            sections.append(
-                self.generate_processing_section(
-                    processing.get("main_flows", []),
-                    processing.get(
-                        "error_handling", "標準的なエラーハンドリングを実装"
-                    ),
-                )
-            )
-
-        # Non-functional Requirements
-        if nonfunctional := document_data.get("nonfunctional"):
-            sections.append(
-                self.generate_nonfunctional_section(
-                    nonfunctional.get("performance", "性能要件が定義されていません"),
-                    nonfunctional.get(
-                        "security", "セキュリティ要件が定義されていません"
-                    ),
-                    nonfunctional.get("availability", "可用性要件が定義されていません"),
-                    nonfunctional.get(
-                        "maintainability", "保守性要件が定義されていません"
-                    ),
-                )
-            )
-
-        # Operations
-        if operations := document_data.get("operations"):
-            sections.append(
-                self.generate_operations_section(
-                    operations.get(
-                        "deployment", "デプロイメント方式が定義されていません"
-                    ),
-                    operations.get("monitoring", "監視方式が定義されていません"),
-                    operations.get("backup", "バックアップ方式が定義されていません"),
-                )
-            )
-
-        # Appendix
-        sections.append(
-            self.generate_appendix_section(
-                document_data.get("terms", {}), document_data.get("references", [])
-            )
-        )
-
-        # Change History
+        # Change History (preserved for backward compatibility)
         sections.append(
             self.generate_change_history_section(
                 document_data.get("change_history", [])
             )
         )
 
-        return "\n".join(sections)
-
-
-class SpecificationFormatter:
-    """Utility class for formatting specification content."""
-
-    @staticmethod
-    def format_code_block(code: str, language: str = "") -> str:
-        """Format code as markdown code block."""
-        return f"```{language}\n{code}\n```"
-
-    @staticmethod
-    def format_table(headers: list[str], rows: list[list[str]]) -> str:
-        """Format data as markdown table."""
-        table_lines = []
-
-        # Header
-        table_lines.append("| " + " | ".join(headers) + " |")
-        table_lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
-
-        # Rows
-        for row in rows:
-            table_lines.append("| " + " | ".join(row) + " |")
-
-        return "\n".join(table_lines)
-
-    @staticmethod
-    def format_list(items: list[str], ordered: bool = False) -> str:
-        """Format items as markdown list."""
-        if ordered:
-            return "\n".join(f"{i}. {item}" for i, item in enumerate(items, 1))
-        else:
-            return "\n".join(f"- {item}" for item in items)
-
-    @staticmethod
-    def format_section_header(title: str, level: int = 1) -> str:
-        """Format section header."""
-        return f"{'#' * level} {title}\n"
-
-    @staticmethod
-    def format_emphasis(text: str, bold: bool = False) -> str:
-        """Format emphasized text."""
-        if bold:
-            return f"**{text}**"
-        else:
-            return f"*{text}*"
-
-
-# Standard Japanese IT terminology
-STANDARD_SECTIONS = {
-    "overview": "概要",
-    "purpose": "目的",
-    "scope": "範囲",
-    "architecture": "アーキテクチャ",
-    "design": "設計",
-    "implementation": "実装",
-    "testing": "テスト",
-    "deployment": "デプロイメント",
-    "operations": "運用",
-    "maintenance": "保守",
-    "appendix": "付録",
-}
-
-STANDARD_SUBSECTIONS = {
-    "system_overview": "システム概要",
-    "target_audience": "対象読者",
-    "prerequisites": "前提条件",
-    "constraints": "制約事項",
-    "assumptions": "前提条件",
-    "risks": "リスク",
-    "mitigation": "対策",
-    "schedule": "スケジュール",
-    "resources": "リソース",
-    "deliverables": "成果物",
-}
+        return "\n\n".join(sections)
