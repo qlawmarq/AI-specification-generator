@@ -111,7 +111,7 @@ class SimpleMemoryTracker:
                 "current_usage_percent": memory_percent,
                 "peak_usage_mb": self.peak_usage_mb,
                 "max_allowed_mb": self.max_memory_mb,
-                "usage_ratio": current_usage / self.max_memory_mb,
+                "usage_ratio": current_usage / self.max_memory_mb if self.max_memory_mb > 0 else 0.0,
             }
         except Exception as e:
             logger.error(f"Failed to get memory stats: {e}")

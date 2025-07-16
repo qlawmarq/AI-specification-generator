@@ -53,6 +53,20 @@ class Calculator:
         self.history.append(f"{x}² = {result}")
         return result
 
+    def cube(self, x: Union[int, float]) -> Union[int, float]:
+        """
+        数値の三乗を計算します。
+
+        Args:
+            x: 計算対象の数値
+
+        Returns:
+            x の三乗
+        """
+        result = x * x * x
+        self.history.append(f"{x}³ = {result}")
+        return result
+
     def subtract(self, a: Union[int, float], b: Union[int, float]) -> Union[int, float]:
         """
         二つの数値を引き算します。
