@@ -39,6 +39,84 @@ class Calculator:
         self.history.append(f"{a} + {b} = {result}")
         return result
 
+    def square(self, x: Union[int, float]) -> Union[int, float]:
+        """
+        数値の二乗を計算します。
+
+        Args:
+            x: 計算対象の数値
+
+        Returns:
+            x の二乗
+        """
+        result = x * x
+        self.history.append(f"{x}² = {result}")
+        return result
+    
+    def multiply_by_two(self, x: Union[int, float]) -> Union[int, float]:
+        """
+        数値を2倍にします。
+
+        Args:
+            x: 計算対象の数値
+
+        Returns:
+            x の2倍
+        """
+        result = x * 2
+        self.history.append(f"{x} × 2 = {result}")
+        return result
+
+    def cube(self, x: Union[int, float]) -> Union[int, float]:
+        """
+        数値の三乗を計算します。
+
+        Args:
+            x: 計算対象の数値
+
+        Returns:
+            x の三乗
+        """
+        result = x * x * x
+        self.history.append(f"{x}³ = {result}")
+        return result
+
+    def power(self, base: Union[int, float], exponent: Union[int, float]) -> Union[int, float]:
+        """
+        べき乗計算を行います。
+
+        Args:
+            base: 底
+            exponent: 指数
+
+        Returns:
+            計算結果
+        """
+        result = base ** exponent
+        self.history.append(f"{base}^{exponent} = {result}")
+        return result
+
+    def root(self, x: Union[int, float], n: Union[int, float] = 2) -> Union[int, float]:
+        """
+        n乗根を計算します。
+
+        Args:
+            x: 根を計算する数値
+            n: 根の次数（デフォルト: 2）
+
+        Returns:
+            x の n乗根
+
+        Raises:
+            ValueError: x が負の数で n が偶数の場合
+        """
+        if x < 0 and n % 2 == 0:
+            raise ValueError("負の数の偶数乗根は実数では計算できません")
+        
+        result = x ** (1 / n)
+        self.history.append(f"root({x}, {n}) = {result}")
+        return result
+
     def subtract(self, a: Union[int, float], b: Union[int, float]) -> Union[int, float]:
         """
         二つの数値を引き算します。
@@ -69,6 +147,27 @@ class Calculator:
         self.history.append(f"{a} * {b} = {result}")
         return result
 
+    def modulo(self, a: Union[int, float], b: Union[int, float]) -> Union[int, float]:
+        """
+        二つの数値の剰余を計算します。
+
+        Args:
+            a: 被除数
+            b: 除数
+
+        Returns:
+            剰余計算結果
+
+        Raises:
+            ZeroDivisionError: ゼロ除算の場合
+        """
+        if b == 0:
+            raise ZeroDivisionError("ゼロで割ることはできません")
+        
+        result = a % b
+        self.history.append(f"{a} % {b} = {result}")
+        return result
+
     def divide(self, a: Union[int, float], b: Union[int, float]) -> Union[int, float]:
         """
         二つの数値を割り算します。
@@ -89,6 +188,27 @@ class Calculator:
         result = a / b
         self.history.append(f"{a} / {b} = {result}")
         return result
+    
+    def average(self, numbers: list[Union[int, float]]) -> float:
+        """
+        数値リストの平均を計算します。
+
+        Args:
+            numbers: 平均を計算する数値のリスト
+
+        Returns:
+            平均値
+
+        Raises:
+            ValueError: 空のリストの場合
+        """
+        if not numbers:
+            raise ValueError("空のリストの平均は計算できません")
+        
+        total = sum(numbers)
+        avg = total / len(numbers)
+        self.history.append(f"average({numbers}) = {avg}")
+        return avg
 
     def get_history(self) -> list[str]:
         """
@@ -154,6 +274,8 @@ if __name__ == "__main__":
     print(f"10 - 3 = {calc.subtract(10, 3)}")
     print(f"4 * 6 = {calc.multiply(4, 6)}")
     print(f"15 / 3 = {calc.divide(15, 3)}")
+    print(f"17 % 5 = {calc.modulo(17, 5)}")
+    print(f"8² = {calc.square(8)}")
 
     # 履歴表示
     print("\n計算履歴:")

@@ -10,9 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from spec_generator.core.diff_detector import SemanticDiffDetector
+from spec_generator.core.diff_detector import SemanticDiffDetector, ChangeType
 from spec_generator.models import Language, SemanticChange, SpecificationConfig
-from spec_generator.utils.git_utils import GitRepository
+from spec_generator.utils.git_utils import GitRepository, GitError, GitOperations
 
 
 class TestSemanticDiffDetector:
@@ -392,6 +392,99 @@ class Processor:
             assert not self.detector._is_significant_change(
                 element_type, change_type, element_name
             )
+
+    def test_git_file_status_map(self):
+        """Test git diff --name-status parsing."""
+        # Create a mock GitOperations instance
+        mock_git_ops = GitOperations(self.repo_path)
+        
+        # Mock the _run_git_command method
+        mock_git_ops._run_git_command = MagicMock()
+        mock_git_ops._run_git_command.return_value = MagicMock(
+            stdout="A\tnew_file.py\nM\tmodified_file.py\nD\tdeleted_file.py\n"
+        )
+        
+        status_map = mock_git_ops.get_file_status_map()
+        
+        # Should parse status codes correctly
+        assert status_map["new_file.py"] == "A"
+        assert status_map["modified_file.py"] == "M"
+        assert status_map["deleted_file.py"] == "D"
+        assert len(status_map) == 3
+        
+        # Test with empty output
+        mock_git_ops._run_git_command.return_value = MagicMock(stdout="")
+        status_map_empty = mock_git_ops.get_file_status_map()
+        assert status_map_empty == {}
+        
+        # Test with git error
+        mock_git_ops._run_git_command.side_effect = GitError("git command failed")
+        status_map_error = mock_git_ops.get_file_status_map()
+        assert status_map_error == {}
+
+    def test_detect_changes_new_file(self):
+        """Test detection of changes in newly added files."""
+        # Mock git operations
+        mock_git_ops = MagicMock()
+        mock_git_ops.get_file_status_map.return_value = {
+            "new_file.py": "A"  # New file
+        }
+        mock_git_ops.get_changed_files.return_value = ["new_file.py"]
+        mock_git_ops.get_current_file_content.return_value = "def new_function(): pass"
+        
+        # Replace the detector's git_ops with our mock
+        self.detector.git_ops = mock_git_ops
+        
+        # Mock the _parse_content method to return semantic elements
+        with patch.object(self.detector, '_parse_content') as mock_parse:
+            mock_parse.return_value = [
+                MagicMock(
+                    name="new_function",
+                    element_type="function",
+                    content="def new_function(): pass",
+                    start_line=1,
+                    end_line=1,
+                    parameters=[]
+                )
+            ]
+            
+            changes = self.detector.detect_changes()
+            
+            # Should detect new function as semantic change
+            assert len(changes) > 0
+            assert changes[0].change_type == ChangeType.ADDED
+            assert changes[0].element_name == "new_function"
+            assert changes[0].element_type == "function"
+
+    def test_analyze_file_changes_new_file(self):
+        """Test file analysis handles new files without git errors."""
+        # Mock git operations
+        mock_git_ops = MagicMock()
+        mock_git_ops.get_file_at_commit.side_effect = GitError("File not found")
+        mock_git_ops.get_current_file_content.return_value = "class NewClass: pass"
+        
+        # Replace the detector's git_ops with our mock
+        self.detector.git_ops = mock_git_ops
+        
+        # Mock the _parse_content method to return semantic elements
+        with patch.object(self.detector, '_parse_content') as mock_parse:
+            mock_parse.return_value = [
+                MagicMock(
+                    name="NewClass",
+                    element_type="class",
+                    content="class NewClass: pass",
+                    start_line=1,
+                    end_line=1,
+                    parameters=[]
+                )
+            ]
+            
+            changes = self.detector._analyze_file_changes("new_file.py", "HEAD~1", "HEAD", "A")
+            
+            # Should handle new file creation gracefully
+            assert len(changes) == 1
+            assert changes[0].change_type == ChangeType.ADDED
+            assert "NewClass" in changes[0].element_name
 
 
 class TestGitRepositoryIntegration:

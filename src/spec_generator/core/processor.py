@@ -16,8 +16,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
 
-from ..models import CodeChunk, Language, ProcessingStats, SpecificationConfig
+from ..models import (
+    ClassStructure,
+    CodeChunk,
+    EnhancedCodeChunk,
+    Language,
+    ProcessingStats,
+    SpecificationConfig,
+)
 from ..parsers import ASTAnalyzer
+from ..parsers.tree_sitter_parser import TreeSitterParser
 from ..utils.file_utils import FileScanner, LanguageDetector
 from ..utils.simple_memory import SimpleMemoryTracker
 
@@ -187,6 +195,104 @@ class ChunkProcessor:
             logger.error(f"Failed to create AST chunks from {file_path}: {e}")
             return []
 
+    async def create_class_aware_chunks(
+        self,
+        file_path: Path,
+        language: Language,
+        tree_sitter_parser: TreeSitterParser
+    ) -> list[EnhancedCodeChunk]:
+        """Create chunks that preserve class boundaries."""
+        try:
+            # Extract class structures
+            class_structures = tree_sitter_parser.extract_class_structures(str(file_path), language)
+
+            if not class_structures:
+                # Fall back to regular chunking if no classes found
+                regular_chunks = await self.create_chunks_from_content(
+                    open(file_path, encoding='utf-8').read(),
+                    file_path,
+                    language,
+                    False
+                )
+                return [
+                    EnhancedCodeChunk(
+                        original_chunk=chunk,
+                        class_structures=[],
+                        is_complete_class=False,
+                        parent_class=None
+                    ) for chunk in regular_chunks
+                ]
+
+            enhanced_chunks = []
+
+            for class_structure in class_structures:
+                # Check if class fits in one chunk
+                class_content = class_structure.to_unified_chunk()
+
+                if len(class_content) <= self.config.chunk_size:
+                    # Create one chunk for the entire class
+                    original_chunk = CodeChunk(
+                        content=class_content,
+                        file_path=file_path,
+                        language=language,
+                        start_line=class_structure.start_line,
+                        end_line=class_structure.end_line,
+                        chunk_type="complete_class"
+                    )
+
+                    enhanced_chunk = EnhancedCodeChunk(
+                        original_chunk=original_chunk,
+                        class_structures=[class_structure],
+                        is_complete_class=True,
+                        parent_class=class_structure.name
+                    )
+
+                    enhanced_chunks.append(enhanced_chunk)
+                else:
+                    # Split large class by methods but maintain class context
+                    method_chunks = self._split_large_class(class_structure, file_path, language)
+                    enhanced_chunks.extend(method_chunks)
+
+            logger.debug(f"Created {len(enhanced_chunks)} class-aware chunks from {file_path}")
+            return enhanced_chunks
+
+        except Exception as e:
+            logger.error(f"Failed to create class-aware chunks from {file_path}: {e}")
+            return []
+
+    def _split_large_class(self, class_structure: ClassStructure, file_path: Path, language: Language) -> list[EnhancedCodeChunk]:
+        """Split a large class into method chunks while preserving class context."""
+        chunks = []
+
+        # Create class header chunk
+        class_header = f"class {class_structure.name}:"
+        if class_structure.docstring:
+            class_header += f'\n    """\n    {class_structure.docstring}\n    """'
+
+        # Add each method as a separate chunk but with class context
+        for method in class_structure.methods:
+            method_content = f"{class_header}\n\n    {getattr(method, 'content', str(method))}"
+
+            original_chunk = CodeChunk(
+                content=method_content,
+                file_path=file_path,
+                language=language,
+                start_line=getattr(method, 'start_line', class_structure.start_line),
+                end_line=getattr(method, 'end_line', class_structure.end_line),
+                chunk_type="class_method"
+            )
+
+            enhanced_chunk = EnhancedCodeChunk(
+                original_chunk=original_chunk,
+                class_structures=[class_structure],
+                is_complete_class=False,
+                parent_class=class_structure.name
+            )
+
+            chunks.append(enhanced_chunk)
+
+        return chunks
+
 
 class LargeCodebaseProcessor:
     """
@@ -202,6 +308,7 @@ class LargeCodebaseProcessor:
         self.language_detector = LanguageDetector()
         self.chunk_processor = ChunkProcessor(config)
         self.ast_analyzer = ASTAnalyzer()
+        self.tree_sitter_parser = TreeSitterParser()
 
         # Processing limits
         self.batch_size = min(config.parallel_processes * 2, 20)
@@ -439,3 +546,35 @@ class LargeCodebaseProcessor:
         except Exception as e:
             logger.error(f"Failed to estimate processing time: {e}")
             return {"error": str(e)}
+
+    async def process_file_with_class_awareness(
+        self,
+        file_path: Path,
+        use_semantic_chunking: bool = False,
+    ) -> list[EnhancedCodeChunk]:
+        """Process a single file with class-aware chunking."""
+        # Detect language
+        language = self.language_detector.detect_language(file_path)
+        if not language or language not in self.config.supported_languages:
+            logger.warning(f"Unsupported language for file: {file_path}")
+            return []
+
+        try:
+            # Check file size
+            if file_path.stat().st_size > self.max_file_size_mb * 1024 * 1024:
+                logger.warning(f"Skipping large file: {file_path}")
+                return []
+
+            # Create class-aware chunks
+            enhanced_chunks = await self.chunk_processor.create_class_aware_chunks(
+                file_path, language, self.tree_sitter_parser
+            )
+
+            logger.debug(
+                f"Processed {file_path} with class awareness: {len(enhanced_chunks)} chunks"
+            )
+            return enhanced_chunks
+
+        except Exception as e:
+            logger.error(f"Failed to process {file_path} with class awareness: {e}")
+            return []

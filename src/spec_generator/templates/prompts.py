@@ -13,7 +13,7 @@ from langchain.prompts import PromptTemplate
 class PromptTemplates:
     """Collection of prompt templates for specification generation."""
 
-    # Code Analysis Prompt (Stage 1)
+    # Code Analysis Prompt (Stage 1) - Enhanced for Class Structure Recognition
     ANALYSIS_PROMPT = PromptTemplate(
         input_variables=["code_content", "file_path", "language", "ast_info"],
         template="""あなたは熟練したソフトウェアアーキテクトです。
@@ -29,6 +29,12 @@ class PromptTemplates:
 ```{language}
 {code_content}
 ```
+
+## 重要な指示:
+- 同じクラスのメソッドは必ず同じクラス名で関連付けてください
+- "不明" や "推測" ではなく、実際のクラス名を使用してください
+- メソッドとクラスの関係を明確に示してください
+- クラスが存在する場合は、そのクラス内のメソッドをすべて "methods" 配列に含めてください
 
 ## 分析項目:
 1. 主要機能（各関数・クラスの役割）
@@ -50,16 +56,24 @@ JSON形式で構造化して出力してください:
       "inputs": ["入力パラメータ"],
       "outputs": "戻り値",
       "business_logic": "ビジネスロジック",
-      "complexity": "複雑度（low/medium/high）"
+      "complexity": "複雑度（low/medium/high）",
+      "parent_class": "所属するクラス名（クラスメソッドの場合）"
     }}
   ],
   "classes": [
     {{
-      "name": "クラス名",
+      "name": "実際のクラス名",
       "purpose": "役割",
       "methods": ["メソッド名のリスト"],
       "attributes": ["属性名のリスト"],
-      "design_pattern": "使用されているデザインパターン"
+      "design_pattern": "使用されているデザインパターン",
+      "method_details": [
+        {{
+          "name": "メソッド名",
+          "purpose": "メソッドの役割",
+          "complexity": "複雑度（low/medium/high）"
+        }}
+      ]
     }}
   ],
   "dependencies": [
@@ -229,6 +243,41 @@ JSON形式で構造化して出力してください:
 各モジュールは明確な責務を持ち、適切に分離された設計となっています。""",
     )
 
+    # Class Structure Analysis Prompt (for class-aware analysis)
+    CLASS_STRUCTURE_PROMPT = PromptTemplate(
+        input_variables=["class_name", "class_methods", "class_content"],
+        template="""あなたは日本のITエンジニアです。以下のクラス構造を分析し、正確なクラス情報を提供してください。
+
+## クラス名: {class_name}
+## メソッド一覧: {class_methods}
+
+## クラス内容:
+```python
+{class_content}
+```
+
+## 重要な指示:
+- このクラスのすべてのメソッドは「{class_name}」クラスに所属するものとして記録してください
+- メソッドの親クラスを明確に示してください
+- 「不明」や「推測」という表現は使用しないでください
+
+## 出力形式:
+以下のJSON形式で回答してください:
+{{
+  "class_name": "{class_name}",
+  "purpose": "クラスの役割説明",
+  "methods": [
+    {{
+      "name": "メソッド名",
+      "purpose": "メソッドの役割",
+      "parent_class": "{class_name}"
+    }}
+  ],
+  "complexity": "複雑度（low/medium/high）"
+}}
+""",
+    )
+
 
 class JapanesePromptHelper:
     """Helper class for Japanese prompt formatting."""
@@ -253,7 +302,7 @@ class JapanesePromptHelper:
 
     @staticmethod
     def format_class_list(classes: list) -> str:
-        """Format class list for Japanese prompts."""
+        """Format class list for Japanese prompts with enhanced class structure awareness."""
         if not classes:
             return "クラスは定義されていません。"
 
@@ -263,10 +312,31 @@ class JapanesePromptHelper:
             methods_raw = cls.get("methods", [])
             methods_str = [str(m) if not isinstance(m, str) else m for m in methods_raw]
             methods = ", ".join(methods_str)
-            formatted.append(
-                f"- **{cls.get('name', 'unknown')}**: {cls.get('purpose', '目的不明')}\n"
-                f"  - メソッド: {methods}"
-            )
+
+            # Enhanced formatting with class structure awareness
+            class_name = cls.get('name', 'unknown')
+            purpose = cls.get('purpose', '目的不明')
+
+            # Add method details if available
+            method_details = cls.get('method_details', [])
+            if method_details:
+                method_info = []
+                for method in method_details:
+                    method_name = method.get('name', 'unknown')
+                    method_purpose = method.get('purpose', '目的不明')
+                    method_info.append(f"    - {method_name}: {method_purpose}")
+                method_details_str = "\n".join(method_info)
+
+                formatted.append(
+                    f"- **{class_name}**: {purpose}\n"
+                    f"  - メソッド: {methods}\n"
+                    f"  - メソッド詳細:\n{method_details_str}"
+                )
+            else:
+                formatted.append(
+                    f"- **{class_name}**: {purpose}\n"
+                    f"  - メソッド: {methods}"
+                )
 
         return "\n".join(formatted)
 

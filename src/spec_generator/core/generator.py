@@ -14,11 +14,12 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from langchain.chains import LLMChain
+from langchain_core.runnables import RunnableSequence
 from langchain_openai import ChatOpenAI
 
 from ..models import (
     CodeChunk,
+    EnhancedCodeChunk,
     ProcessingStats,
     SpecificationConfig,
     SpecificationOutput,
@@ -36,6 +37,7 @@ class LLMProvider:
 
     def __init__(self, config: SpecificationConfig):
         self.config = config
+        self._actual_model_name = None  # Initialize before _create_llm
         self.llm = self._create_llm()
         self.request_count = 0
         self.last_request_time = 0.0
@@ -47,26 +49,19 @@ class LLMProvider:
 
         if provider == "gemini" and self.config.gemini_api_key:
             # Gemini API
-            import httpx
             from langchain_google_genai import ChatGoogleGenerativeAI
 
             # Use gemini-specific model names
             model = self.config.llm_model or "gemini-2.0-flash"
+            self._actual_model_name = model  # Store for metadata
 
-            # Create async client with timeout configuration
-            timeout_config = httpx.Timeout(
-                timeout=self.config.performance_settings.request_timeout,
-                connect=5.0,
-                read=self.config.performance_settings.request_timeout - 5.0,
-            )
-            async_client = httpx.AsyncClient(timeout=timeout_config)
+            # Note: ChatGoogleGenerativeAI handles async operations internally
 
             return ChatGoogleGenerativeAI(
                 model=model,
                 temperature=0.3,
                 google_api_key=self.config.gemini_api_key,
                 max_retries=self.config.performance_settings.max_retries,
-                http_async_client=async_client,
             )
         elif (
             provider == "azure"
@@ -75,6 +70,7 @@ class LLMProvider:
         ):
             # Azure OpenAI
             model = self.config.llm_model or "gpt-4"
+            self._actual_model_name = model  # Store for metadata
             return ChatOpenAI(
                 model=model,
                 temperature=0.3,
@@ -87,6 +83,7 @@ class LLMProvider:
         elif provider == "openai" and self.config.openai_api_key:
             # Standard OpenAI
             model = self.config.llm_model or "gpt-4"
+            self._actual_model_name = model  # Store for metadata
             return ChatOpenAI(
                 model=model,
                 temperature=0.3,
@@ -117,13 +114,17 @@ class LLMProvider:
             timeout_seconds = self.config.performance_settings.request_timeout
             response = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
-                    None, self.llm.predict, prompt
+                    None, self.llm.invoke, prompt
                 ),
                 timeout=timeout_seconds,
             )
 
             self.request_count += 1
             logger.debug(f"LLM request {self.request_count} completed")
+            
+            # Extract content from AIMessage if needed
+            if hasattr(response, 'content'):
+                return response.content
             return response
 
         except Exception as e:
@@ -150,8 +151,9 @@ class AnalysisProcessor:
     def __init__(self, llm_provider: LLMProvider):
         self.llm_provider = llm_provider
         self.prompt_templates = PromptTemplates()
-        self.analysis_chain = LLMChain(
-            llm=llm_provider.llm, prompt=self.prompt_templates.ANALYSIS_PROMPT
+        # Create analysis chain using RunnableSequence (replacing deprecated LLMChain)
+        self.analysis_chain = RunnableSequence(
+            self.prompt_templates.ANALYSIS_PROMPT | llm_provider.llm
         )
 
     async def analyze_code_chunk(self, chunk: CodeChunk) -> dict[str, Any]:
@@ -226,6 +228,78 @@ class AnalysisProcessor:
         combined["overview"] = self._create_combined_overview(combined)
 
         return combined
+
+    def _aggregate_analysis_results(self, analysis_results: list[dict]) -> dict:
+        """Aggregate analysis results with class structure awareness."""
+        from collections import defaultdict
+
+        # Group by class name instead of treating each method separately
+        class_groups = defaultdict(list)
+        standalone_functions = []
+
+        for result in analysis_results:
+            # Process classes
+            for class_info in result.get('classes', []):
+                class_name = class_info.get('name', 'unknown')
+                if class_name and class_name != 'unknown':
+                    class_groups[class_name].append(class_info)
+
+            # Process standalone functions (not part of classes)
+            for func_info in result.get('functions', []):
+                parent_class = func_info.get('parent_class')
+                if not parent_class:
+                    standalone_functions.append(func_info)
+
+        # Merge duplicate class entries
+        unified_classes = []
+        for class_name, class_infos in class_groups.items():
+            unified_class = self._merge_class_infos(class_infos)
+            unified_classes.append(unified_class)
+
+        return {
+            'unified_classes': unified_classes,
+            'standalone_functions': standalone_functions,
+            'class_count': len(unified_classes),
+            'total_methods': sum(len(cls.get('methods', [])) for cls in unified_classes)
+        }
+
+    def _merge_class_infos(self, class_infos: list[dict]) -> dict:
+        """Merge multiple class info dictionaries into a single unified class."""
+        if not class_infos:
+            return {}
+
+        # Use the first class info as the base
+        unified = class_infos[0].copy()
+
+        # Merge methods from all class infos
+        all_methods = set()
+        all_method_details = []
+
+        for class_info in class_infos:
+            methods = class_info.get('methods', [])
+            for method in methods:
+                if isinstance(method, str):
+                    all_methods.add(method)
+                elif isinstance(method, dict):
+                    method_name = method.get('name', 'unknown')
+                    all_methods.add(method_name)
+                    all_method_details.append(method)
+
+        # Update unified class with merged methods
+        unified['methods'] = list(all_methods)
+        unified['method_details'] = all_method_details
+
+        # Merge purposes if multiple exist
+        purposes = []
+        for class_info in class_infos:
+            purpose = class_info.get('purpose', '')
+            if purpose and purpose not in purposes:
+                purposes.append(purpose)
+
+        if purposes:
+            unified['purpose'] = ' '.join(purposes)
+
+        return unified
 
     def _extract_module_name(self, analysis: dict[str, Any]) -> str:
         """Extract module name from analysis."""
@@ -342,10 +416,12 @@ class SpecificationGenerator:
         self.analysis_processor = AnalysisProcessor(self.llm_provider)
         self.spec_template = JapaneseSpecificationTemplate("システム仕様書")
         self.prompt_templates = PromptTemplates()
+        # Make actual_model_name accessible
+        self._actual_model_name = self.llm_provider._actual_model_name
 
-        # Create generation chain
-        self.generation_chain = LLMChain(
-            llm=self.llm_provider.llm, prompt=self.prompt_templates.JAPANESE_SPEC_PROMPT
+        # Create generation chain using RunnableSequence (replacing deprecated LLMChain)
+        self.generation_chain = RunnableSequence(
+            self.prompt_templates.JAPANESE_SPEC_PROMPT | self.llm_provider.llm
         )
 
         # Statistics
@@ -362,6 +438,51 @@ class SpecificationGenerator:
         """
         Generate Japanese specification document from code chunks.
 
+        Args:
+            chunks: List of code chunks to analyze.
+            project_name: Name of the project.
+            output_path: Optional path to save the specification.
+
+        Returns:
+            SpecificationOutput with generated document and metadata.
+        """
+        return await self._generate_specification_internal(chunks, project_name, output_path)
+
+    async def generate_specification_from_enhanced_chunks(
+        self,
+        enhanced_chunks: list[EnhancedCodeChunk],
+        project_name: str = "システム",
+        output_path: Optional[Path] = None,
+    ) -> SpecificationOutput:
+        """Generate specification from enhanced chunks with class structure awareness."""
+        # Convert EnhancedCodeChunk to CodeChunk for processing
+        code_chunks = []
+        for enhanced_chunk in enhanced_chunks:
+            # Use unified content that preserves class structure
+            unified_content = enhanced_chunk.get_unified_content()
+
+            # Create a new CodeChunk with the unified content
+            code_chunk = CodeChunk(
+                content=unified_content,
+                file_path=enhanced_chunk.original_chunk.file_path,
+                language=enhanced_chunk.original_chunk.language,
+                start_line=enhanced_chunk.original_chunk.start_line,
+                end_line=enhanced_chunk.original_chunk.end_line,
+                chunk_type=enhanced_chunk.original_chunk.chunk_type
+            )
+            code_chunks.append(code_chunk)
+
+        return await self._generate_specification_internal(code_chunks, project_name, output_path)
+
+    async def _generate_specification_internal(
+        self,
+        chunks: list[CodeChunk],
+        project_name: str = "システム",
+        output_path: Optional[Path] = None,
+    ) -> SpecificationOutput:
+        """
+        Internal method to generate specification document.
+        
         Args:
             chunks: List of code chunks to analyze.
             project_name: Name of the project.
@@ -516,7 +637,7 @@ class SpecificationGenerator:
             processing_stats=self.stats,
             metadata={
                 "generator_version": "1.0",
-                "llm_model": "gpt-4",
+                "llm_model": self._actual_model_name or "unknown",
                 "chunk_count": len(source_chunks),
             },
             language_distribution=self._calculate_language_distribution(source_chunks),
@@ -544,20 +665,17 @@ class SpecificationGenerator:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(output.content)
 
-            # Write metadata file
-            metadata_path = output_path.with_suffix(".metadata.json")
-            metadata = {
-                "title": output.title,
-                "created_at": output.created_at,
-                "source_files": [str(f) for f in output.source_files],
-                "processing_stats": output.processing_stats.dict(),
-                "metadata": output.metadata,
-            }
-
-            with open(metadata_path, "w", encoding="utf-8") as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-
+            # Log metadata information instead of writing to file
             logger.info(f"Specification saved to {output_path}")
+            logger.info(f"Title: {output.title}")
+            logger.info(f"Created at: {output.created_at}")
+            logger.info(f"Source files: {[str(f) for f in output.source_files]}")
+            logger.info(f"Processing stats: Files processed: {output.processing_stats.files_processed}, "
+                       f"Lines processed: {output.processing_stats.lines_processed}, "
+                       f"Chunks created: {output.processing_stats.chunks_created}, "
+                       f"Processing time: {output.processing_stats.processing_time_seconds:.2f}s")
+            if output.metadata:
+                logger.info(f"Additional metadata: {output.metadata}")
 
         except Exception as e:
             logger.error(f"Failed to save specification: {e}")
@@ -595,7 +713,11 @@ class SpecificationGenerator:
                 created_at=time.strftime("%Y-%m-%d %H:%M:%S"),
                 source_files=[existing_spec_path],
                 processing_stats=ProcessingStats(),
-                metadata={"update_type": "incremental", "change_count": len(changes)},
+                metadata={
+                    "update_type": "incremental",
+                    "change_count": len(changes),
+                    "llm_model": self._actual_model_name or "unknown"
+                },
             )
 
             # Save if path provided

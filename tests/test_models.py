@@ -98,7 +98,7 @@ class TestCodeChunk:
             language=Language.PYTHON,
         )
 
-        data = chunk.dict()
+        data = chunk.model_dump()
         assert data["content"] == "def hello(): pass"
         assert data["file_path"] == "test.py"
         assert data["language"] == "python"
@@ -496,9 +496,9 @@ def test_complete_workflow_models(
     assert output.metadata["test"] is True
 
     # Test serialization of complex objects
-    chunk_dict = sample_code_chunk.dict()
-    change_dict = sample_semantic_change.dict()
-    config_dict = sample_config.dict()
+    chunk_dict = sample_code_chunk.model_dump()
+    change_dict = sample_semantic_change.model_dump()
+    config_dict = sample_config.model_dump()
 
     assert chunk_dict["language"] == "python"
     assert change_dict["change_type"] == "added"

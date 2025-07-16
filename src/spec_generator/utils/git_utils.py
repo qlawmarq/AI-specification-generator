@@ -75,9 +75,48 @@ class GitOperations:
 
             return result
         except FileNotFoundError:
-            raise GitError("Git is not installed or not in PATH")
+            raise GitError("Git is not installed or not in PATH") from None
         except Exception as e:
-            raise GitError(f"Git command error: {e}")
+            raise GitError(f"Git command error: {e}") from e
+
+    def get_file_status_map(
+        self,
+        base_commit: str = "HEAD~1",
+        target_commit: str = "HEAD",
+    ) -> dict[str, str]:
+        """
+        Get file status mapping using git diff --name-status.
+
+        Args:
+            base_commit: Base commit for comparison.
+            target_commit: Target commit for comparison.
+
+        Returns:
+            Dictionary mapping file paths to status codes (A/M/D/etc.).
+        """
+        try:
+            result = self._run_git_command([
+                "diff", "--name-status", f"{base_commit}..{target_commit}"
+            ])
+
+            status_map = {}
+            if result.stdout.strip():
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        parts = line.split('\t')
+                        if len(parts) >= 2:
+                            status, filepath = parts[0], parts[1]
+                            status_map[filepath] = status
+
+            logger.debug(f"Found {len(status_map)} files with status information")
+            return status_map
+
+        except GitError as e:
+            logger.warning(f"Failed to get file status map: {e}")
+            return {}
+        except Exception as e:
+            logger.warning(f"Unexpected error getting file status map: {e}")
+            return {}
 
     def get_changed_files(
         self,
@@ -134,7 +173,7 @@ class GitOperations:
         except GitError:
             raise
         except Exception as e:
-            raise GitError(f"Failed to get changed files: {e}")
+            raise GitError(f"Failed to get changed files: {e}") from e
 
     def get_file_at_commit(self, file_path: str, commit: str) -> Optional[str]:
         """

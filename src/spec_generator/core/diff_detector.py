@@ -117,6 +117,11 @@ class SemanticDiffDetector:
         try:
             logger.info(f"Detecting changes between {base_commit} and {target_commit}")
 
+            # Get file status mapping for efficient categorization
+            file_status_map = self.git_ops.get_file_status_map(
+                base_commit, target_commit
+            )
+
             # Get changed files
             changed_files = self.git_ops.get_changed_files(
                 base_commit, target_commit, include_untracked
@@ -132,8 +137,11 @@ class SemanticDiffDetector:
 
             for file_path in changed_files:
                 try:
+                    # Get file status for optimized processing
+                    file_status = file_status_map.get(file_path, None)
+
                     file_changes = self._analyze_file_changes(
-                        file_path, base_commit, target_commit
+                        file_path, base_commit, target_commit, file_status
                     )
                     all_changes.extend(file_changes)
                 except Exception as e:
@@ -151,9 +159,13 @@ class SemanticDiffDetector:
             raise
 
     def _analyze_file_changes(
-        self, file_path: str, base_commit: str, target_commit: str
+        self,
+        file_path: str,
+        base_commit: str,
+        target_commit: str,
+        file_status: Optional[str] = None
     ) -> list[SemanticChange]:
-        """Analyze changes in a single file."""
+        """Analyze changes in a single file with optimized content retrieval."""
         # Check if file is supported
         self.repo_path / file_path
 
@@ -168,9 +180,20 @@ class SemanticDiffDetector:
             logger.debug(f"Skipping unsupported file: {file_path}")
             return []
 
-        # Get file content at both commits
-        old_content = self.git_ops.get_file_at_commit(file_path, base_commit)
-        new_content = self.git_ops.get_current_file_content(file_path)
+        # Optimize file content retrieval based on status
+        if file_status == "A":  # New file - skip getting old content
+            logger.debug(f"Processing new file: {file_path}")
+            old_content = None
+            new_content = self.git_ops.get_current_file_content(file_path)
+        elif file_status == "D":  # Deleted file - skip getting new content
+            logger.debug(f"Processing deleted file: {file_path}")
+            old_content = self.git_ops.get_file_at_commit(file_path, base_commit)
+            new_content = None
+        else:  # Modified file or unknown status - use existing logic
+            status_desc = 'modified' if file_status == 'M' else 'unknown status'
+            logger.debug(f"Processing {status_desc} file: {file_path}")
+            old_content = self.git_ops.get_file_at_commit(file_path, base_commit)
+            new_content = self.git_ops.get_current_file_content(file_path)
 
         # Handle file creation/deletion
         if old_content is None and new_content is not None:
@@ -182,10 +205,10 @@ class SemanticDiffDetector:
 
         # Parse both versions
         old_elements = self._parse_content(
-            old_content, language, f"{file_path}@{base_commit}"
+            old_content or "", language, f"{file_path}@{base_commit}"
         )
         new_elements = self._parse_content(
-            new_content, language, f"{file_path}@{target_commit}"
+            new_content or "", language, f"{file_path}@{target_commit}"
         )
 
         # Compare elements
