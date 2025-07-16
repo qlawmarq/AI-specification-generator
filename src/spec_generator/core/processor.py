@@ -113,7 +113,7 @@ class ChunkProcessor:
                     asyncio.get_event_loop().run_in_executor(
                         None, self.semantic_chunker.split_text, content
                     ),
-                    timeout=timeout_seconds
+                    timeout=timeout_seconds,
                 )
 
                 for _i, chunk_text in enumerate(semantic_chunks):
@@ -399,7 +399,6 @@ class LargeCodebaseProcessor:
         # This would be called from an active processing context
         # For now, return empty stats
         return ProcessingStats()
-
 
     def estimate_processing_time(self, repo_path: Path) -> dict[str, float]:
         """

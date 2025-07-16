@@ -36,7 +36,7 @@ class SemanticElement:
         # Validate line numbers
         if end_line < start_line:
             raise ValueError("end_line must be greater than or equal to start_line")
-            
+
         self.name = name
         self.element_type = element_type  # function, class, method, variable, etc.
         self.start_line = start_line
@@ -95,16 +95,18 @@ class LanguageParser(ABC):
             module_name = language_map[language]
             # PATTERN: Dynamic import with error handling
             module = importlib.import_module(module_name)
-            
+
             # CRITICAL: Handle different API structures for different languages
             # Reason: tree-sitter-typescript uses language_typescript() instead of language()
             if language == Language.TYPESCRIPT:
-                if hasattr(module, 'language_typescript'):
+                if hasattr(module, "language_typescript"):
                     return tree_sitter.Language(module.language_typescript())
-                elif hasattr(module, 'language'):
+                elif hasattr(module, "language"):
                     return tree_sitter.Language(module.language())
                 else:
-                    raise AttributeError(f"Module {module_name} has no typescript language function")
+                    raise AttributeError(
+                        f"Module {module_name} has no typescript language function"
+                    )
             else:
                 # CRITICAL: Use Language() constructor with language library
                 return tree_sitter.Language(module.language())
@@ -151,11 +153,15 @@ class LanguageParser(ABC):
         start_line = node.start_point[0] + 1  # Convert to 1-based indexing
         end_line = node.end_point[0] + 1
         return start_line, end_line
-    
-    def _is_node_within(self, child_node: tree_sitter.Node, parent_node: tree_sitter.Node) -> bool:
+
+    def _is_node_within(
+        self, child_node: tree_sitter.Node, parent_node: tree_sitter.Node
+    ) -> bool:
         """Check if a node is within another node."""
-        return (child_node.start_point >= parent_node.start_point and 
-                child_node.end_point <= parent_node.end_point)
+        return (
+            child_node.start_point >= parent_node.start_point
+            and child_node.end_point <= parent_node.end_point
+        )
 
 
 class PythonParser(LanguageParser):
@@ -178,31 +184,33 @@ class PythonParser(LanguageParser):
 
         functions = []
         function_defs = captures.get("function.def", [])
-        
+
         for function_node in function_defs:
             function_data = {"node": function_node}
-            
+
             # Extract function name
             name_nodes = captures.get("function.name", [])
             for name_node in name_nodes:
                 if self._is_node_within(name_node, function_node):
                     function_data["name"] = self._get_node_text(name_node)
                     break
-            
+
             # Extract function parameters
             param_nodes = captures.get("function.params", [])
             for param_node in param_nodes:
                 if self._is_node_within(param_node, function_node):
-                    function_data["params"] = self._extract_python_parameters(param_node)
+                    function_data["params"] = self._extract_python_parameters(
+                        param_node
+                    )
                     break
-            
+
             # Extract function body
             body_nodes = captures.get("function.body", [])
             for body_node in body_nodes:
                 if self._is_node_within(body_node, function_node):
                     function_data["body"] = body_node
                     break
-            
+
             functions.append(self._create_function_element(function_data))
 
         return functions
@@ -220,24 +228,24 @@ class PythonParser(LanguageParser):
 
         classes = []
         class_defs = captures.get("class.def", [])
-        
+
         for class_node in class_defs:
             class_data = {"node": class_node}
-            
+
             # Extract class name
             name_nodes = captures.get("class.name", [])
             for name_node in name_nodes:
                 if self._is_node_within(name_node, class_node):
                     class_data["name"] = self._get_node_text(name_node)
                     break
-            
+
             # Extract class body
             body_nodes = captures.get("class.body", [])
             for body_node in body_nodes:
                 if self._is_node_within(body_node, class_node):
                     class_data["body"] = body_node
                     break
-            
+
             classes.append(self._create_class_element(class_data))
 
         return classes
@@ -342,31 +350,31 @@ class JavaScriptParser(LanguageParser):
 
         functions = []
         function_defs = captures.get("function.def", [])
-        
+
         for function_node in function_defs:
             function_data = {"node": function_node}
-            
+
             # Extract function name
             name_nodes = captures.get("function.name", [])
             for name_node in name_nodes:
                 if self._is_node_within(name_node, function_node):
                     function_data["name"] = self._get_node_text(name_node)
                     break
-            
+
             # Extract function parameters
             param_nodes = captures.get("function.params", [])
             for param_node in param_nodes:
                 if self._is_node_within(param_node, function_node):
                     function_data["params"] = self._extract_js_parameters(param_node)
                     break
-            
+
             # Extract function body
             body_nodes = captures.get("function.body", [])
             for body_node in body_nodes:
                 if self._is_node_within(body_node, function_node):
                     function_data["body"] = body_node
                     break
-            
+
             functions.append(self._create_js_function_element(function_data))
 
         return functions
@@ -384,24 +392,24 @@ class JavaScriptParser(LanguageParser):
 
         classes = []
         class_defs = captures.get("class.def", [])
-        
+
         for class_node in class_defs:
             class_data = {"node": class_node}
-            
+
             # Extract class name
             name_nodes = captures.get("class.name", [])
             for name_node in name_nodes:
                 if self._is_node_within(name_node, class_node):
                     class_data["name"] = self._get_node_text(name_node)
                     break
-            
+
             # Extract class body
             body_nodes = captures.get("class.body", [])
             for body_node in body_nodes:
                 if self._is_node_within(body_node, class_node):
                     class_data["body"] = body_node
                     break
-            
+
             classes.append(self._create_js_class_element(class_data))
 
         return classes
@@ -465,12 +473,12 @@ class TreeSitterParser:
     def __init__(self) -> None:
         self._parsers: dict[Language, LanguageParser] = {}
         self._initialize_parsers()
-    
+
     @property
     def parsers(self) -> dict[Language, LanguageParser]:
         """Get the parsers dictionary (for compatibility with tests)."""
         return self._parsers
-    
+
     @property
     def supported_languages(self) -> set[Language]:
         """Get set of supported languages (for compatibility with tests)."""

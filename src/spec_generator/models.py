@@ -261,7 +261,6 @@ class ConfigLoader:
         return SpecificationConfig(**config_dict)
 
 
-
 class ProcessingStats(BaseModel):
     """Statistics for processing operations."""
 

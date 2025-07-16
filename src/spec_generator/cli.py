@@ -196,7 +196,7 @@ def generate(
                         use_ast_chunking,
                         max_files,
                     ),
-                    timeout=timeout_seconds
+                    timeout=timeout_seconds,
                 )
             )
         else:
@@ -558,9 +558,7 @@ async def _run_single_file(file_path: Path, output: Path, use_semantic_chunking:
     ) as progress:
         task = progress.add_task("Generating specification...", total=None)
 
-        await generator.generate_specification(
-            chunks, file_path.stem, output
-        )
+        await generator.generate_specification(chunks, file_path.stem, output)
 
         progress.remove_task(task)
 
@@ -656,7 +654,9 @@ def _display_config_info(config: SpecificationConfig):
     table.add_row("Chunk Overlap", str(config.chunk_overlap))
     table.add_row("Max Memory (MB)", str(config.max_memory_mb))
     table.add_row("Parallel Processes", str(config.parallel_processes))
-    table.add_row("Request Timeout (sec)", str(config.performance_settings.request_timeout))
+    table.add_row(
+        "Request Timeout (sec)", str(config.performance_settings.request_timeout)
+    )
     table.add_row("Output Format", config.output_format)
     table.add_row("OpenAI API Key", "Set" if config.openai_api_key else "Not set")
     table.add_row(

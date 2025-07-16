@@ -15,8 +15,6 @@ from .models import ConfigLoader, SpecificationConfig
 logger = logging.getLogger(__name__)
 
 
-
-
 def load_config() -> SpecificationConfig:
     """
     Load configuration from environment variables.
@@ -105,8 +103,6 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> No
 def get_default_config() -> SpecificationConfig:
     """Get default configuration with sensible defaults."""
     return SpecificationConfig()
-
-
 
 
 # Environment variable names for configuration

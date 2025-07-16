@@ -23,43 +23,39 @@ TEST_CATEGORIES = {
             "tests/test_processor.py",
             "tests/test_generator.py",
             "tests/test_updater.py",
-            "tests/test_diff_detector.py"
+            "tests/test_diff_detector.py",
         ],
-        "markers": ["not integration"]
+        "markers": ["not integration"],
     },
     "integration": {
         "description": "Run integration tests",
         "paths": ["tests/test_integration.py"],
-        "markers": ["integration"]
+        "markers": ["integration"],
     },
     "cli": {
         "description": "Run CLI tests",
         "paths": ["tests/test_cli.py"],
-        "markers": []
+        "markers": [],
     },
-    "all": {
-        "description": "Run all tests",
-        "paths": ["tests/"],
-        "markers": []
-    }
+    "all": {"description": "Run all tests", "paths": ["tests/"], "markers": []},
 }
 
 LINTING_TOOLS = {
     "ruff": {
         "description": "Run Ruff linter",
         "command": ["ruff", "check", "src/", "tests/", "scripts/"],
-        "fix_command": ["ruff", "check", "--fix", "src/", "tests/", "scripts/"]
+        "fix_command": ["ruff", "check", "--fix", "src/", "tests/", "scripts/"],
     },
     "black": {
         "description": "Run Black formatter",
         "command": ["black", "--check", "--diff", "src/", "tests/", "scripts/"],
-        "fix_command": ["black", "src/", "tests/", "scripts/"]
+        "fix_command": ["black", "src/", "tests/", "scripts/"],
     },
     "mypy": {
         "description": "Run MyPy type checker",
         "command": ["mypy", "src/spec_generator/"],
-        "fix_command": None
-    }
+        "fix_command": None,
+    },
 }
 
 
@@ -70,12 +66,14 @@ class TestRunner:
         self.project_root = project_root
         self.results: dict[str, dict] = {}
 
-    def run_tests(self,
-                  category: str = "all",
-                  verbose: bool = False,
-                  coverage: bool = False,
-                  fail_fast: bool = False,
-                  parallel: bool = False) -> bool:
+    def run_tests(
+        self,
+        category: str = "all",
+        verbose: bool = False,
+        coverage: bool = False,
+        fail_fast: bool = False,
+        parallel: bool = False,
+    ) -> bool:
         """
         Run tests for specified category.
 
@@ -112,11 +110,13 @@ class TestRunner:
             cmd.append("-v")
 
         if coverage:
-            cmd.extend([
-                "--cov=src/spec_generator",
-                "--cov-report=html:htmlcov",
-                "--cov-report=term-missing"
-            ])
+            cmd.extend(
+                [
+                    "--cov=src/spec_generator",
+                    "--cov-report=html:htmlcov",
+                    "--cov-report=term-missing",
+                ]
+            )
 
         if fail_fast:
             cmd.append("-x")
@@ -125,10 +125,7 @@ class TestRunner:
             cmd.extend(["-n", "auto"])
 
         # Add output options
-        cmd.extend([
-            "--tb=short",
-            "--disable-warnings"
-        ])
+        cmd.extend(["--tb=short", "--disable-warnings"])
 
         print(f"Running {test_config['description']}...")
         print(f"Command: {' '.join(cmd)}")
@@ -137,10 +134,7 @@ class TestRunner:
 
         try:
             result = subprocess.run(
-                cmd,
-                cwd=self.project_root,
-                capture_output=False,
-                text=True
+                cmd, cwd=self.project_root, capture_output=False, text=True
             )
 
             end_time = time.time()
@@ -151,7 +145,7 @@ class TestRunner:
             self.results[category] = {
                 "success": success,
                 "duration": duration,
-                "command": " ".join(cmd)
+                "command": " ".join(cmd),
             }
 
             if success:
@@ -168,10 +162,9 @@ class TestRunner:
             print(f"Error running tests: {e}")
             return False
 
-    def run_linting(self,
-                   tool: str = "all",
-                   fix: bool = False,
-                   verbose: bool = False) -> bool:
+    def run_linting(
+        self, tool: str = "all", fix: bool = False, verbose: bool = False
+    ) -> bool:
         """
         Run linting tools.
 
@@ -216,10 +209,7 @@ class TestRunner:
 
             try:
                 result = subprocess.run(
-                    cmd,
-                    cwd=self.project_root,
-                    capture_output=not verbose,
-                    text=True
+                    cmd, cwd=self.project_root, capture_output=not verbose, text=True
                 )
 
                 end_time = time.time()
@@ -240,7 +230,7 @@ class TestRunner:
                 self.results[f"lint_{tool_name}"] = {
                     "success": success,
                     "duration": duration,
-                    "command": " ".join(cmd)
+                    "command": " ".join(cmd),
                 }
 
             except FileNotFoundError:
@@ -265,7 +255,7 @@ class TestRunner:
                 "pytest-xdist>=3.0.0",  # For parallel testing
                 "ruff>=0.0.261",
                 "black>=23.0.0",
-                "mypy>=1.0.0"
+                "mypy>=1.0.0",
             ]
 
             cmd = [sys.executable, "-m", "pip", "install"] + test_deps
@@ -290,9 +280,9 @@ class TestRunner:
             print("No test results to report.")
             return
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST RESULTS SUMMARY")
-        print("="*60)
+        print("=" * 60)
 
         total_duration = 0
         passed_count = 0
@@ -330,7 +320,10 @@ class TestRunner:
         steps = [
             ("syntax", lambda: self.run_linting("ruff", verbose=False)),
             ("formatting", lambda: self.run_linting("black", verbose=False)),
-            ("unit_tests", lambda: self.run_tests("unit", verbose=False, fail_fast=True))
+            (
+                "unit_tests",
+                lambda: self.run_tests("unit", verbose=False, fail_fast=True),
+            ),
         ]
 
         all_passed = True
@@ -357,7 +350,7 @@ class TestRunner:
             ("typing", lambda: self.run_linting("mypy")),
             ("unit_tests", lambda: self.run_tests("unit", coverage=True)),
             ("cli_tests", lambda: self.run_tests("cli")),
-            ("integration_tests", lambda: self.run_tests("integration"))
+            ("integration_tests", lambda: self.run_tests("integration")),
         ]
 
         all_passed = True
@@ -386,7 +379,7 @@ Examples:
   python scripts/run_tests.py --test unit          # Run unit tests only
   python scripts/run_tests.py --lint ruff --fix    # Run and fix ruff issues
   python scripts/run_tests.py --install            # Install test dependencies
-        """
+        """,
     )
 
     # Mode selection (mutually exclusive)
@@ -394,54 +387,40 @@ Examples:
     mode_group.add_argument(
         "--quick",
         action="store_true",
-        help="Run quick validation (syntax, format, unit tests)"
+        help="Run quick validation (syntax, format, unit tests)",
     )
     mode_group.add_argument(
-        "--full",
-        action="store_true",
-        help="Run full validation suite"
+        "--full", action="store_true", help="Run full validation suite"
     )
     mode_group.add_argument(
         "--test",
         choices=list(TEST_CATEGORIES.keys()),
-        help="Run specific test category"
+        help="Run specific test category",
     )
     mode_group.add_argument(
         "--lint",
         choices=list(LINTING_TOOLS.keys()) + ["all"],
-        help="Run specific linting tool"
+        help="Run specific linting tool",
     )
     mode_group.add_argument(
-        "--install",
-        action="store_true",
-        help="Install test dependencies"
+        "--install", action="store_true", help="Install test dependencies"
     )
 
     # Options
     parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Enable verbose output"
+        "--verbose", "-v", action="store_true", help="Enable verbose output"
     )
     parser.add_argument(
-        "--coverage",
-        action="store_true",
-        help="Enable coverage reporting (for tests)"
+        "--coverage", action="store_true", help="Enable coverage reporting (for tests)"
     )
     parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Apply automatic fixes (for linting)"
+        "--fix", action="store_true", help="Apply automatic fixes (for linting)"
     )
     parser.add_argument(
-        "--fail-fast", "-x",
-        action="store_true",
-        help="Stop on first test failure"
+        "--fail-fast", "-x", action="store_true", help="Stop on first test failure"
     )
     parser.add_argument(
-        "--parallel", "-n",
-        action="store_true",
-        help="Run tests in parallel"
+        "--parallel", "-n", action="store_true", help="Run tests in parallel"
     )
 
     args = parser.parse_args()
@@ -474,15 +453,11 @@ Examples:
             verbose=args.verbose,
             coverage=args.coverage,
             fail_fast=args.fail_fast,
-            parallel=args.parallel
+            parallel=args.parallel,
         )
 
     elif args.lint:
-        success = runner.run_linting(
-            tool=args.lint,
-            fix=args.fix,
-            verbose=args.verbose
-        )
+        success = runner.run_linting(tool=args.lint, fix=args.fix, verbose=args.verbose)
 
     # Generate report
     runner.generate_report()

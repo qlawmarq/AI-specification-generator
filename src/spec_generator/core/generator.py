@@ -57,7 +57,7 @@ class LLMProvider:
             timeout_config = httpx.Timeout(
                 timeout=self.config.performance_settings.request_timeout,
                 connect=5.0,
-                read=self.config.performance_settings.request_timeout - 5.0
+                read=self.config.performance_settings.request_timeout - 5.0,
             )
             async_client = httpx.AsyncClient(timeout=timeout_config)
 
@@ -119,7 +119,7 @@ class LLMProvider:
                 asyncio.get_event_loop().run_in_executor(
                     None, self.llm.predict, prompt
                 ),
-                timeout=timeout_seconds
+                timeout=timeout_seconds,
             )
 
             self.request_count += 1
@@ -281,7 +281,7 @@ class AnalysisProcessor:
         return PromptTemplates.SYSTEM_OVERVIEW_PROMPT.format(
             module_count=module_count,
             function_count=function_count,
-            class_count=class_count
+            class_count=class_count,
         )
 
     def _parse_analysis_response(self, analysis_result: str) -> dict[str, Any]:
@@ -293,7 +293,7 @@ class AnalysisProcessor:
             try:
                 # Strategy 2: Extract from markdown code blocks
                 json_match = re.search(
-                    r'```json\s*(\{.*?\})\s*```', analysis_result, re.DOTALL
+                    r"```json\s*(\{.*?\})\s*```", analysis_result, re.DOTALL
                 )
                 if json_match:
                     return json.loads(json_match.group(1))
@@ -302,7 +302,7 @@ class AnalysisProcessor:
 
             try:
                 # Strategy 3: Find JSON object in text
-                json_match = re.search(r'\{.*\}', analysis_result, re.DOTALL)
+                json_match = re.search(r"\{.*\}", analysis_result, re.DOTALL)
                 if json_match:
                     return json.loads(json_match.group(0))
             except json.JSONDecodeError:
@@ -323,7 +323,7 @@ class AnalysisProcessor:
                 "error_handling": "Unknown",
                 "key_components": ["Unable to parse detailed analysis"],
                 "recommendations": ["Review LLM response format"],
-                "complexity_score": 5  # Default medium complexity
+                "complexity_score": 5,  # Default medium complexity
             }
 
 

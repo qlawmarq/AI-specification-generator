@@ -76,7 +76,8 @@ class TreeSitterInstaller:
         try:
             # CRITICAL: Use importlib.metadata instead of __version__
             import importlib.metadata
-            version = importlib.metadata.version('tree-sitter')
+
+            version = importlib.metadata.version("tree-sitter")
             logger.info(f"Tree-sitter version {version} found")
             return True
         except ImportError:
@@ -150,10 +151,7 @@ class TreeSitterInstaller:
 
             # Run installation
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
+                cmd, capture_output=True, text=True, timeout=300  # 5 minute timeout
             )
 
             if result.returncode == 0:
@@ -280,9 +278,7 @@ class TreeSitterInstaller:
 
 
 def install_parsers_for_languages(
-    languages: list[str],
-    force: bool = False,
-    verify: bool = True
+    languages: list[str], force: bool = False, verify: bool = True
 ) -> bool:
     """
     Install Tree-sitter parsers for specified languages.
@@ -316,20 +312,22 @@ def install_parsers_for_languages(
     # Get summary
     summary = installer.get_installation_summary()
 
-    logger.info(f"""
+    logger.info(
+        f"""
 Installation Summary:
   Total Attempted: {summary['total_attempted']}
   Successful: {summary['successful']}
   Failed: {summary['failed']}
-""")
+"""
+    )
 
-    if summary['errors']:
+    if summary["errors"]:
         logger.warning("Errors encountered:")
-        for error in summary['errors']:
+        for error in summary["errors"]:
             logger.warning(f"  - {error}")
 
     # Return True only if all installations were successful
-    return summary['failed'] == 0
+    return summary["failed"] == 0
 
 
 def install_default_parsers(force: bool = False) -> bool:
@@ -352,8 +350,7 @@ def list_supported_languages() -> None:
 
     for language, package in LANGUAGE_PARSERS.items():
         aliases = [
-            alias for alias, target in LANGUAGE_ALIASES.items()
-            if target == language
+            alias for alias, target in LANGUAGE_ALIASES.items() if target == language
         ]
         alias_str = f" (aliases: {', '.join(aliases)})" if aliases else ""
         print(f"  {language:<12} -> {package}{alias_str}")
@@ -375,52 +372,31 @@ Examples:
   python install_tree_sitter.py --all              # Install all languages
   python install_tree_sitter.py python javascript  # Install specific languages
   python install_tree_sitter.py --list             # List supported languages
-        """
+        """,
     )
 
+    parser.add_argument("languages", nargs="*", help="Specific languages to install")
     parser.add_argument(
-        "languages",
-        nargs="*",
-        help="Specific languages to install"
+        "--default", action="store_true", help="Install default core languages"
     )
     parser.add_argument(
-        "--default",
-        action="store_true",
-        help="Install default core languages"
+        "--all", action="store_true", help="Install all supported languages"
     )
     parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Install all supported languages"
+        "--force", action="store_true", help="Force reinstallation of existing parsers"
     )
+    parser.add_argument("--list", action="store_true", help="List supported languages")
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force reinstallation of existing parsers"
+        "--no-verify", action="store_true", help="Skip verification after installation"
     )
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List supported languages"
-    )
-    parser.add_argument(
-        "--no-verify",
-        action="store_true",
-        help="Skip verification after installation"
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable verbose logging"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 
     # Setup logging
     level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
     # Handle list command
@@ -435,9 +411,7 @@ Examples:
         success = install_default_parsers(force=args.force)
     elif args.languages:
         success = install_parsers_for_languages(
-            args.languages,
-            force=args.force,
-            verify=not args.no_verify
+            args.languages, force=args.force, verify=not args.no_verify
         )
     else:
         # Default behavior - install core languages

@@ -1,7 +1,7 @@
 """
 Common utilities for the Japanese Specification Generator.
 
-This module provides standardized utilities for logging, error handling, 
+This module provides standardized utilities for logging, error handling,
 console output, and file validation to reduce code duplication.
 """
 
@@ -10,13 +10,13 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def standardized_logger(name: str) -> logging.Logger:
     """
     Create a standardized logger with consistent formatting.
-    
+
     Args:
         name: Logger name, typically __name__ from the calling module.
     Returns:
@@ -48,13 +48,14 @@ def standardized_logger(name: str) -> logging.Logger:
 def common_error_handler(operation_name: str):
     """
     Decorator for standardized error handling across modules.
-    
+
     Args:
         operation_name: Name of the operation for error logging.
-        
+
     Returns:
         Decorator function.
     """
+
     def decorator(func: F) -> F:
         def wrapper(*args, **kwargs):
             try:
@@ -63,18 +64,20 @@ def common_error_handler(operation_name: str):
                 logger = standardized_logger(func.__module__)
                 logger.error(f"{operation_name} failed: {e}")
                 raise
+
         return wrapper
+
     return decorator
 
 
 def format_console_message(message: str, level: str = "info") -> str:
     """
     Format console messages with consistent styling.
-    
+
     Args:
         message: Message to format.
         level: Message level (info, success, warning, error).
-        
+
     Returns:
         Formatted message string.
     """
@@ -82,7 +85,7 @@ def format_console_message(message: str, level: str = "info") -> str:
         "info": "blue",
         "success": "green",
         "warning": "yellow",
-        "error": "red"
+        "error": "red",
     }
 
     color = color_map.get(level, "white")
@@ -93,14 +96,14 @@ def format_console_message(message: str, level: str = "info") -> str:
 def validate_file_path(file_path: str | Path, must_exist: bool = True) -> Path:
     """
     Validate and normalize file paths with consistent error handling.
-    
+
     Args:
         file_path: Path to validate.
         must_exist: Whether the file must exist.
-        
+
     Returns:
         Validated Path object.
-        
+
     Raises:
         ValueError: If path is invalid.
         FileNotFoundError: If file doesn't exist and must_exist=True.
@@ -122,17 +125,19 @@ def validate_file_path(file_path: str | Path, must_exist: bool = True) -> Path:
         raise ValueError(f"Invalid file path '{file_path}': {e}") from e
 
 
-def validate_directory_path(dir_path: str | Path, create_if_missing: bool = False) -> Path:
+def validate_directory_path(
+    dir_path: str | Path, create_if_missing: bool = False
+) -> Path:
     """
     Validate and normalize directory paths with consistent error handling.
-    
+
     Args:
         dir_path: Directory path to validate.
         create_if_missing: Whether to create directory if it doesn't exist.
-        
+
     Returns:
         Validated Path object.
-        
+
     Raises:
         ValueError: If path is invalid.
         FileNotFoundError: If directory doesn't exist and create_if_missing=False.
@@ -162,13 +167,13 @@ def validate_directory_path(dir_path: str | Path, create_if_missing: bool = Fals
 def safe_json_load(file_path: str | Path) -> dict[str, Any]:
     """
     Safely load JSON file with standardized error handling.
-    
+
     Args:
         file_path: Path to JSON file.
-        
+
     Returns:
         Parsed JSON data.
-        
+
     Raises:
         ValueError: If file cannot be parsed or doesn't exist.
     """
@@ -177,7 +182,7 @@ def safe_json_load(file_path: str | Path) -> dict[str, Any]:
     try:
         path = validate_file_path(file_path, must_exist=True)
 
-        with open(path, encoding='utf-8') as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     except json.JSONDecodeError as e:
@@ -186,15 +191,17 @@ def safe_json_load(file_path: str | Path) -> dict[str, Any]:
         raise ValueError(f"Failed to load JSON from '{file_path}': {e}") from e
 
 
-def safe_file_write(file_path: str | Path, content: str, encoding: str = 'utf-8') -> None:
+def safe_file_write(
+    file_path: str | Path, content: str, encoding: str = "utf-8"
+) -> None:
     """
     Safely write content to file with standardized error handling.
-    
+
     Args:
         file_path: Path to write to.
         content: Content to write.
         encoding: File encoding.
-        
+
     Raises:
         ValueError: If file cannot be written.
     """
@@ -204,14 +211,16 @@ def safe_file_write(file_path: str | Path, content: str, encoding: str = 'utf-8'
         # Create parent directories if needed
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w', encoding=encoding) as f:
+        with open(path, "w", encoding=encoding) as f:
             f.write(content)
 
     except Exception as e:
         raise ValueError(f"Failed to write to file '{file_path}': {e}") from e
 
 
-def get_env_var(name: str, default: Optional[str] = None, required: bool = False) -> str:
+def get_env_var(
+    name: str, default: Optional[str] = None, required: bool = False
+) -> str:
     """
     Get environment variable with standardized error handling.
     Args:
@@ -241,6 +250,6 @@ def ensure_utf8_encoding(text: str) -> str:
     """
     try:
         # Try to encode/decode to ensure proper UTF-8
-        return text.encode('utf-8').decode('utf-8')
+        return text.encode("utf-8").decode("utf-8")
     except UnicodeError as e:
         raise ValueError(f"Text encoding error: {e}") from e
