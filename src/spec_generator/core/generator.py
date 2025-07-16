@@ -36,6 +36,7 @@ class LLMProvider:
 
     def __init__(self, config: SpecificationConfig):
         self.config = config
+        self._actual_model_name = None  # Initialize before _create_llm
         self.llm = self._create_llm()
         self.request_count = 0
         self.last_request_time = 0.0
@@ -52,6 +53,7 @@ class LLMProvider:
 
             # Use gemini-specific model names
             model = self.config.llm_model or "gemini-2.0-flash"
+            self._actual_model_name = model  # Store for metadata
 
             # Create async client with timeout configuration
             timeout_config = httpx.Timeout(
@@ -75,6 +77,7 @@ class LLMProvider:
         ):
             # Azure OpenAI
             model = self.config.llm_model or "gpt-4"
+            self._actual_model_name = model  # Store for metadata
             return ChatOpenAI(
                 model=model,
                 temperature=0.3,
@@ -87,6 +90,7 @@ class LLMProvider:
         elif provider == "openai" and self.config.openai_api_key:
             # Standard OpenAI
             model = self.config.llm_model or "gpt-4"
+            self._actual_model_name = model  # Store for metadata
             return ChatOpenAI(
                 model=model,
                 temperature=0.3,
@@ -342,6 +346,8 @@ class SpecificationGenerator:
         self.analysis_processor = AnalysisProcessor(self.llm_provider)
         self.spec_template = JapaneseSpecificationTemplate("システム仕様書")
         self.prompt_templates = PromptTemplates()
+        # Make actual_model_name accessible
+        self._actual_model_name = self.llm_provider._actual_model_name
 
         # Create generation chain
         self.generation_chain = LLMChain(
@@ -516,7 +522,7 @@ class SpecificationGenerator:
             processing_stats=self.stats,
             metadata={
                 "generator_version": "1.0",
-                "llm_model": "gpt-4",
+                "llm_model": self._actual_model_name or "unknown",
                 "chunk_count": len(source_chunks),
             },
             language_distribution=self._calculate_language_distribution(source_chunks),
@@ -595,7 +601,11 @@ class SpecificationGenerator:
                 created_at=time.strftime("%Y-%m-%d %H:%M:%S"),
                 source_files=[existing_spec_path],
                 processing_stats=ProcessingStats(),
-                metadata={"update_type": "incremental", "change_count": len(changes)},
+                metadata={
+                    "update_type": "incremental", 
+                    "change_count": len(changes),
+                    "llm_model": self._actual_model_name or "unknown"
+                },
             )
 
             # Save if path provided
