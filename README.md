@@ -70,20 +70,11 @@ export OPENAI_API_KEY="your-api-key-here"
 
 ### Basic Usage
 
-**Generate specification for entire repository:**
-
-```bash
-spec-generator generate /path/to/your/repo \
-  --output ./specifications \
-  --project-name "マイシステム" \
-  --languages python javascript
-```
-
 **Generate specification for single file:**
 
 ```bash
-spec-generator generate-single src/main.py \
-  --output single-spec.md
+spec-generator generate src/main.py \
+  --output specification.md
 ```
 
 **Update existing specification:**
@@ -105,20 +96,16 @@ spec-generator config-info
 
 ### `generate`
 
-Generate complete specification documentation from a codebase.
+Generate specification documentation for a single file.
 
 ```bash
-spec-generator generate [REPO_PATH] [OPTIONS]
+spec-generator generate [FILE_PATH] [OPTIONS]
 ```
 
 **Options:**
 
-- `--output, -o`: Output directory (default: `./specifications`)
-- `--project-name, -p`: Project name in Japanese (default: `システム`)
-- `--languages, -l`: Programming languages to process
+- `--output, -o`: Output file (default: `./specification.md`)
 - `--semantic-chunking`: Use semantic chunking (requires OpenAI API)
-- `--max-files`: Maximum number of files to process
-- `--estimate-only`: Only estimate processing time
 
 ### `update`
 
@@ -134,14 +121,6 @@ spec-generator update [REPO_PATH] [OPTIONS]
 - `--base-commit`: Base commit for comparison (default: `HEAD~1`)
 - `--target-commit`: Target commit (default: `HEAD`)
 - `--existing-spec`: Path to existing specification
-
-### `generate-single`
-
-Generate specification for a single file.
-
-```bash
-spec-generator generate-single [FILE_PATH] [OPTIONS]
-```
 
 ### `install-parsers`
 
@@ -210,23 +189,18 @@ echo "SUPPORTED_LANGUAGES=python,typescript" >> my-project/.env
 # Use with the project
 cd my-project
 source .env
-spec-generator generate ./src
+spec-generator generate src/main.py
 ```
 
-### Processing Large Repositories
+### Processing Multiple Files
 
-For repositories larger than 1GB, use these optimizations:
+For processing multiple files, use the generate command for each file:
 
 ```bash
-# Use estimation mode first
-spec-generator generate /large/repo --estimate-only
-
-# Process with limits (set via environment)
-export MAX_MEMORY_MB=4096
-export PARALLEL_PROCESSES=2
-spec-generator generate /large/repo \
-  --max-files 1000 \
-  --semantic-chunking
+# Process individual files
+spec-generator generate src/main.py --output main-spec.md
+spec-generator generate src/utils.py --output utils-spec.md
+spec-generator generate src/models.py --output models-spec.md
 ```
 
 ### Incremental Updates

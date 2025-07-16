@@ -40,13 +40,10 @@ Following TEST_REQ.md requirements, always test CLI commands comprehensively:
   # 2. install-parsers command
   uv run python -m spec_generator.cli install-parsers
 
-  # 3. generate-single command
-  uv run python -m spec_generator.cli generate-single test_file.py --output test-spec.md
+  # 3. generate command
+  uv run python -m spec_generator.cli generate test_file.py --output test-spec.md
 
-  # 4. generate command (with timeout)
-  uv run python -m spec_generator.cli generate src --output docs --project-name "プロジェクト名" --timeout 10
-
-  # 5. update command
+  # 4. update command
   uv run python -m spec_generator.cli update . --output spec-updates
   ```
 

@@ -344,9 +344,7 @@ Current requirements.
             content = output_path.read_text()
             assert "# Test Content" in content
 
-            # Check metadata file
-            metadata_path = output_path.with_suffix(".update_metadata.json")
-            assert metadata_path.exists()
+            # Note: update_metadata.json files are no longer generated (refactored to use logging)
 
     def test_merge_specifications(self):
         """Test merging two specification documents."""
@@ -558,9 +556,7 @@ class TestUpdaterIntegration:
                 content = output_path.read_text()
                 assert "更新された仕様書" in content
 
-                # Verify metadata file
-                metadata_path = output_path.with_suffix(".update_metadata.json")
-                assert metadata_path.exists()
+                # Note: update_metadata.json files are no longer generated (refactored to use logging)
 
 
 # Fixtures

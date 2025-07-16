@@ -500,18 +500,16 @@ class SpecificationUpdater:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(output.content)
 
-            # Write metadata
-            metadata_path = output_path.with_suffix(".update_metadata.json")
-            with open(metadata_path, "w", encoding="utf-8") as f:
-                metadata = {
-                    "title": output.title,
-                    "created_at": output.created_at,
-                    "metadata": output.metadata,
-                    "processing_stats": output.processing_stats.dict(),
-                }
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-
+            # Log metadata information instead of writing to file
             logger.info(f"Updated specification saved to {output_path}")
+            logger.info(f"Title: {output.title}")
+            logger.info(f"Created at: {output.created_at}")
+            logger.info(f"Processing stats: Files processed: {output.processing_stats.files_processed}, "
+                       f"Lines processed: {output.processing_stats.lines_processed}, "
+                       f"Chunks created: {output.processing_stats.chunks_created}, "
+                       f"Processing time: {output.processing_stats.processing_time_seconds:.2f}s")
+            if output.metadata:
+                logger.info(f"Update metadata: {output.metadata}")
 
         except Exception as e:
             logger.error(f"Failed to save updated specification: {e}")

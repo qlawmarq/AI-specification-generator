@@ -459,16 +459,11 @@ class TestSpecificationGenerator:
                     content = output_path.read_text(encoding='utf-8')
                     assert "Test Specification" in content
 
-                    # Should also save metadata
-                    metadata_path = output_path.with_suffix('.metadata.json')
-                    assert metadata_path.exists()
+                    # Note: metadata.json files are no longer generated (refactored to use logging)
 
         finally:
             if output_path.exists():
                 output_path.unlink()
-            metadata_path = output_path.with_suffix('.metadata.json')
-            if metadata_path.exists():
-                metadata_path.unlink()
 
     @pytest.mark.asyncio
     async def test_analyze_chunks_in_batches(self):

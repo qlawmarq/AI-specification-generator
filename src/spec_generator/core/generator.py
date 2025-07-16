@@ -550,20 +550,17 @@ class SpecificationGenerator:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(output.content)
 
-            # Write metadata file
-            metadata_path = output_path.with_suffix(".metadata.json")
-            metadata = {
-                "title": output.title,
-                "created_at": output.created_at,
-                "source_files": [str(f) for f in output.source_files],
-                "processing_stats": output.processing_stats.dict(),
-                "metadata": output.metadata,
-            }
-
-            with open(metadata_path, "w", encoding="utf-8") as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
-
+            # Log metadata information instead of writing to file
             logger.info(f"Specification saved to {output_path}")
+            logger.info(f"Title: {output.title}")
+            logger.info(f"Created at: {output.created_at}")
+            logger.info(f"Source files: {[str(f) for f in output.source_files]}")
+            logger.info(f"Processing stats: Files processed: {output.processing_stats.files_processed}, "
+                       f"Lines processed: {output.processing_stats.lines_processed}, "
+                       f"Chunks created: {output.processing_stats.chunks_created}, "
+                       f"Processing time: {output.processing_stats.processing_time_seconds:.2f}s")
+            if output.metadata:
+                logger.info(f"Additional metadata: {output.metadata}")
 
         except Exception as e:
             logger.error(f"Failed to save specification: {e}")
