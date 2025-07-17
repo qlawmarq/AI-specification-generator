@@ -2,7 +2,7 @@
 
 LangChain-based CLI tool for generating specification documents from large codebases using semantic analysis and progressive prompting.
 
-## 🌟 Features
+## Features
 
 - **🔍 Semantic Code Analysis**: Uses Tree-sitter for AST-based parsing of multiple programming languages
 - **🤖 LangChain Integration**: Progressive prompting strategy (analysis → generation) with GPT-4
@@ -12,7 +12,7 @@ LangChain-based CLI tool for generating specification documents from large codeb
 - **🔧 CLI Interface**: Rich command-line interface with progress indicators and error handling
 - **🌐 Multi-Provider LLM**: Support for OpenAI, Azure OpenAI, and Google Gemini with rate limiting
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 CLI Layer (Typer + Rich)
@@ -28,7 +28,7 @@ Templates (IT Industry Standards)
 Output Generation (Markdown + Metadata)
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -97,7 +97,7 @@ uv run python -m spec_generator.cli update /path/to/repo \
 uv run python -m spec_generator.cli config-info
 ```
 
-## 📋 Commands
+## Commands
 
 ### `generate`
 
@@ -140,11 +140,11 @@ uv run python -m spec_generator.cli install-parsers [OPTIONS]
 - `--languages, -l`: Specific languages to install
 - `--force`: Force reinstallation
 
-## ⚙️ Configuration
+## Configuration
 
 Configuration is managed entirely through environment variables. Copy `.env.example` to `.env` and configure your settings.
 
-## 🧪 Development
+## Development
 
 ### Running Tests
 
@@ -207,7 +207,7 @@ uv run python -m spec_generator.cli generate src/utils.py --output utils-spec.md
 uv run python -m spec_generator.cli generate src/models.py --output models-spec.md
 ```
 
-### Incremental Updates
+### Incremental Updates (WIP)
 
 Set up automated specification updates:
 
@@ -220,31 +220,3 @@ uv run python -m spec_generator.cli update /path/to/repo \
   --base-commit $(git rev-parse HEAD~1) \
   --target-commit $(git rev-parse HEAD)
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add tests for new features
-- Update documentation for API changes
-- Use type hints throughout
-- Write meaningful commit messages
-
-## License
-
-MIT
-
-## Acknowledgments
-
-- [LangChain](https://github.com/langchain-ai/langchain) for LLM integration framework
-- [Tree-sitter](https://tree-sitter.github.io/) for syntax tree parsing
-- [Typer](https://typer.tiangolo.com/) for CLI framework
-- [Rich](https://github.com/Textualize/rich) for beautiful terminal output
-- [Pydantic](https://pydantic-docs.helpmanual.io/) for data validation
