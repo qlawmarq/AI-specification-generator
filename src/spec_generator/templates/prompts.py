@@ -1,8 +1,8 @@
 """
-LangChain prompt templates for Japanese specification generation.
+LangChain prompt templates for specification generation.
 
 This module defines prompt templates for progressive prompting strategy,
-including analysis prompts and Japanese specification generation prompts.
+including analysis prompts and specification generation prompts.
 """
 
 from typing import Any
@@ -62,15 +62,15 @@ JSON形式で構造化して出力してください:
   ],
   "classes": [
     {{
-      "name": "実際のクラス名",
-      "purpose": "役割",
-      "methods": ["メソッド名のリスト"],
-      "attributes": ["属性名のリスト"],
+      "name": "実際のクラス名（30文字以内）",
+      "purpose": "役割（50文字以内、簡潔に）",
+      "methods": ["メソッド名のリスト（最大10個まで）"],
+      "attributes": ["属性名のリスト（最大10個まで）"],
       "design_pattern": "使用されているデザインパターン",
       "method_details": [
         {{
           "name": "メソッド名",
-          "purpose": "メソッドの役割",
+          "purpose": "メソッドの役割（簡潔に）",
           "complexity": "複雑度（low/medium/high）"
         }}
       ]
@@ -93,7 +93,7 @@ JSON形式で構造化して出力してください:
 分析は技術的に正確で、日本のIT業界の標準的な表現を使用してください。""",
     )
 
-    # Japanese Specification Generation Prompt (Stage 2)
+    # Specification Generation Prompt (Stage 2)
     JAPANESE_SPEC_PROMPT = PromptTemplate(
         input_variables=[
             "analysis_results",
@@ -137,6 +137,20 @@ JSON形式で構造化して出力してください:
 ## 3. クラス・メソッド設計
 
 ### 3.1 クラス・メソッド一覧表
+
+**CRITICAL TABLE FORMATTING RULES:**
+1. Each table cell MUST be under 80 characters
+2. Method lists MUST show maximum 5 methods followed by "..." if more exist
+3. Use format: "method1, method2, method3..." 
+4. Class names should be concise identifiers only
+5. Role descriptions should be one clear sentence
+
+**EXAMPLE GOOD TABLE:**
+| Calculator | 数値計算機能と履歴管理 | add, subtract, multiply... | パターン: なし |
+| FileHandler | ファイル操作の統一インターフェース | read, write, delete | パターン: Facade |
+
+**EXAMPLE BAD TABLE (NEVER DO THIS):**
+| Calculator | 数値計算機能と計算履歴管理機能を提供する... | add, subtract, multiply, divide, get_history, clear_history, save_to_file, load_from_file, export_to_csv, import_from_csv... | パターン: なし |
 
 | クラス名 | 役割 | 主要メソッド | 備考 |
 | -------- | ---- | ------------ | ---- |
@@ -280,11 +294,11 @@ JSON形式で構造化して出力してください:
 
 
 class JapanesePromptHelper:
-    """Helper class for Japanese prompt formatting."""
+    """Helper class for prompt formatting."""
 
     @staticmethod
     def format_function_list(functions: list) -> str:
-        """Format function list for Japanese prompts."""
+        """Format function list for prompts."""
         if not functions:
             return "関数は定義されていません。"
 
@@ -302,7 +316,7 @@ class JapanesePromptHelper:
 
     @staticmethod
     def format_class_list(classes: list) -> str:
-        """Format class list for Japanese prompts with enhanced class structure awareness."""
+        """Format class list for prompts with enhanced class structure awareness."""
         if not classes:
             return "クラスは定義されていません。"
 
@@ -342,7 +356,7 @@ class JapanesePromptHelper:
 
     @staticmethod
     def format_dependency_list(dependencies: list) -> str:
-        """Format dependency list for Japanese prompts."""
+        """Format dependency list for prompts."""
         if not dependencies:
             return "外部依存関係はありません。"
 

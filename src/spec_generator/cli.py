@@ -1,5 +1,5 @@
 """
-Command Line Interface for Japanese Specification Generator.
+Command Line Interface for Specification Generator.
 
 This module provides a comprehensive CLI using Typer with support for:
 - generate-single: Single file processing (main command)
@@ -37,7 +37,7 @@ from .utils import is_git_repository
 # Create Typer app
 app = typer.Typer(
     name="spec-generator",
-    help="LangChain-based CLI tool for generating Japanese IT specification documents",
+    help="LangChain-based CLI tool for generating IT specification documents",
     add_completion=False,
     rich_markup_mode="rich",
 )
@@ -53,7 +53,7 @@ def version_callback(value: bool):
     """Show version information."""
     if value:
         console.print(
-            f"[bold green]Japanese Specification Generator[/bold green] "
+            f"[bold green]Specification Generator[/bold green] "
             f"version [bold]{__version__}[/bold]"
         )
         raise typer.Exit()
@@ -85,7 +85,7 @@ def main(
         help="Enable verbose logging",
     ),
 ):
-    """Japanese Specification Generator CLI"""
+    """Specification Generator CLI"""
     pass
 
 
@@ -416,7 +416,7 @@ async def _run_single_file(file_path: Path, output: Path, use_semantic_chunking:
 
         # Stage 3: Generation (20% of total)
         progress.update(overall_task, completed=80, description="[green]Stage 3: Generating specification...")
-        gen_task = progress.add_task(description="Generating Japanese specification...", total=100)
+        gen_task = progress.add_task(description="Generating specification...", total=100)
 
         await generator.generate_specification(chunks, file_path.stem, output)
 

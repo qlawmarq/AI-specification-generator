@@ -1,24 +1,33 @@
 """
-Japanese specification document templates.
+specification document templates.
 
-This module provides templates for generating Japanese IT industry
+This module provides templates for generating IT industry
 standard specification documents with proper formatting and structure.
 """
 
 from datetime import datetime
 from typing import Any
 
+from .table_formatters import TableFormatter
+from ..models import TableFormattingSettings
 
-class JapaneseSpecificationTemplate:
-    """Template for Japanese IT industry specification documents."""
 
-    def __init__(self, project_name: str, version: str = "1.0"):
+class SpecificationTemplate:
+    """Template for IT industry specification documents."""
+
+    def __init__(self, project_name: str, version: str = "1.0", config=None):
         self.project_name = project_name
         self.version = version
         self.creation_date = datetime.now().strftime("%Y年%m月%d日")
+        
+        # Initialize table formatter with configuration
+        if config and hasattr(config, 'table_formatting'):
+            self.table_formatter = TableFormatter(config.table_formatting)
+        else:
+            self.table_formatter = TableFormatter(TableFormattingSettings())
 
     def generate_header(self, document_type: str = "詳細設計書") -> str:
-        """Generate document header in Japanese format."""
+        """Generate document header in format."""
         return f"""# {self.project_name} {document_type}
 
 **文書バージョン**: {self.version}
@@ -134,10 +143,10 @@ class JapaneseSpecificationTemplate:
 {self._generate_method_relationships(modules)}"""
 
     def _generate_class_method_section(self, document_data: dict[str, Any]) -> str:
-        """Generate class and method design section."""
+        """Generate class and method design section with table constraints."""
         modules = document_data.get("modules", {})
 
-        # Generate class/method table
+        # Generate class/method table using formatter
         table_rows = []
         detailed_specs = []
 
@@ -147,25 +156,41 @@ class JapaneseSpecificationTemplate:
             for func in functions:
                 func_name = func.get("name", "unknown")
                 purpose = func.get("purpose", "未定義")
-                main_methods = ", ".join(func.get("inputs", [])[:2])
-                remarks = f"複雑度: {func.get('complexity', 'medium')}"
-                table_rows.append(
-                    f"| {func_name} (関数) | {purpose} | {main_methods} | {remarks} |"
+                inputs = func.get("inputs", [])
+                complexity = func.get("complexity", "medium")
+                
+                # Use table formatter for proper constraints
+                formatted_row = self.table_formatter.create_table_row(
+                    class_name=f"{func_name} (関数)",
+                    role=purpose,
+                    methods=inputs,  # For functions, show inputs as "methods"
+                    remarks=f"複雑度: {complexity}"
                 )
+                table_rows.append(formatted_row)
 
             # Classes
             classes = module_data.get("classes", [])
             for cls in classes:
                 cls_name = cls.get("name", "unknown")
                 purpose = cls.get("purpose", "未定義")
-                methods = ", ".join(cls.get("methods", [])[:3])
+                methods = cls.get("methods", [])
                 pattern = cls.get("design_pattern", "なし")
-                table_rows.append(
-                    f"| {cls_name} | {purpose} | {methods} | パターン: {pattern} |"
+                
+                # Use table formatter for proper constraints
+                formatted_row = self.table_formatter.create_table_row(
+                    class_name=cls_name,
+                    role=purpose,
+                    methods=methods,
+                    remarks=f"パターン: {pattern}"
                 )
+                table_rows.append(formatted_row)
 
-                # Add detailed specification
+                # Add detailed specification (preserved existing logic)
                 attributes = ", ".join(cls.get("attributes", []))
+                # Truncate attributes if too long
+                if len(attributes) > 100:
+                    attributes = attributes[:97] + "..."
+                    
                 detailed_specs.append(
                     f"""
 #### {cls_name}

@@ -2,7 +2,7 @@
 
 LangChain-based CLI tool for generating specification documents from large codebases using semantic analysis and progressive prompting.
 
-## 🌟 Features
+## Features
 
 - **🔍 Semantic Code Analysis**: Uses Tree-sitter for AST-based parsing of multiple programming languages
 - **🤖 LangChain Integration**: Progressive prompting strategy (analysis → generation) with GPT-4
@@ -12,7 +12,7 @@ LangChain-based CLI tool for generating specification documents from large codeb
 - **🔧 CLI Interface**: Rich command-line interface with progress indicators and error handling
 - **🌐 Multi-Provider LLM**: Support for OpenAI, Azure OpenAI, and Google Gemini with rate limiting
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 CLI Layer (Typer + Rich)
@@ -23,16 +23,17 @@ Semantic Analysis (Tree-sitter + AST)
     ↓
 LLM Generation (LangChain + Progressive Prompting)
     ↓
-Japanese Templates (IT Industry Standards)
+Templates (IT Industry Standards)
     ↓
 Output Generation (Markdown + Metadata)
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Python
+- Python 3.9+
+- uv (Python package installer)
 - One of the following LLM providers:
   - OpenAI API key (for specification generation)
   - Azure OpenAI access
@@ -48,16 +49,20 @@ git clone https://github.com/your-username/AI-specification-generator.git
 cd AI-specification-generator
 ```
 
-2. **Install dependencies:**
+2. **Install dependencies using uv:**
 
 ```bash
-pip install -e .
+# Install project dependencies
+uv sync
+
+# Install with development dependencies
+uv sync --group dev
 ```
 
 3. **Install Tree-sitter parsers:**
 
 ```bash
-spec-generator install-parsers
+uv run python -m spec_generator.cli install-parsers
 ```
 
 4. **Set up environment variables:**
@@ -73,14 +78,14 @@ export OPENAI_API_KEY="your-api-key-here"
 **Generate specification for single file:**
 
 ```bash
-spec-generator generate src/main.py \
+uv run python -m spec_generator.cli generate src/main.py \
   --output specification.md
 ```
 
 **Update existing specification:**
 
 ```bash
-spec-generator update /path/to/repo \
+uv run python -m spec_generator.cli update /path/to/repo \
   --existing-spec specifications/current-spec.md \
   --base-commit HEAD~1 \
   --target-commit HEAD
@@ -89,17 +94,17 @@ spec-generator update /path/to/repo \
 **View configuration:**
 
 ```bash
-spec-generator config-info
+uv run python -m spec_generator.cli config-info
 ```
 
-## 📋 Commands
+## Commands
 
 ### `generate`
 
 Generate specification documentation for a single file.
 
 ```bash
-spec-generator generate [FILE_PATH] [OPTIONS]
+uv run python -m spec_generator.cli generate [FILE_PATH] [OPTIONS]
 ```
 
 **Options:**
@@ -112,7 +117,7 @@ spec-generator generate [FILE_PATH] [OPTIONS]
 Update existing specification based on code changes.
 
 ```bash
-spec-generator update [REPO_PATH] [OPTIONS]
+uv run python -m spec_generator.cli update [REPO_PATH] [OPTIONS]
 ```
 
 **Options:**
@@ -127,7 +132,7 @@ spec-generator update [REPO_PATH] [OPTIONS]
 Install Tree-sitter language parsers.
 
 ```bash
-spec-generator install-parsers [OPTIONS]
+uv run python -m spec_generator.cli install-parsers [OPTIONS]
 ```
 
 **Options:**
@@ -135,40 +140,39 @@ spec-generator install-parsers [OPTIONS]
 - `--languages, -l`: Specific languages to install
 - `--force`: Force reinstallation
 
-## ⚙️ Configuration
+## Configuration
 
 Configuration is managed entirely through environment variables. Copy `.env.example` to `.env` and configure your settings.
 
-## 🧪 Development
+## Development
 
 ### Running Tests
 
 ```bash
-# Install development dependencies
-pip install -e ".[dev]"
+# Dependencies are already installed with uv sync --group dev
 
 # Run all tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run specific test categories
-pytest tests/test_models.py -v
-pytest tests/test_integration.py -k "not slow" -v
+uv run pytest tests/test_models.py -v
+uv run pytest tests/test_integration.py -k "not slow" -v
 
 # Run with coverage
-pytest tests/ --cov=spec_generator --cov-report=html
+uv run pytest tests/ --cov=spec_generator --cov-report=html
 ```
 
 ### Code Quality
 
 ```bash
 # Format code
-black src/ tests/
+uv run black src/ tests/
 
 # Lint code
-ruff check src/ tests/
+uv run ruff check src/ tests/
 
 # Type checking
-mypy src/
+uv run mypy src/
 ```
 
 ## 🔧 Advanced Usage
@@ -189,7 +193,7 @@ echo "SUPPORTED_LANGUAGES=python,typescript" >> my-project/.env
 # Use with the project
 cd my-project
 source .env
-spec-generator generate src/main.py
+uv run python -m spec_generator.cli generate src/main.py
 ```
 
 ### Processing Multiple Files
@@ -198,49 +202,21 @@ For processing multiple files, use the generate command for each file:
 
 ```bash
 # Process individual files
-spec-generator generate src/main.py --output main-spec.md
-spec-generator generate src/utils.py --output utils-spec.md
-spec-generator generate src/models.py --output models-spec.md
+uv run python -m spec_generator.cli generate src/main.py --output main-spec.md
+uv run python -m spec_generator.cli generate src/utils.py --output utils-spec.md
+uv run python -m spec_generator.cli generate src/models.py --output models-spec.md
 ```
 
-### Incremental Updates
+### Incremental Updates (WIP)
 
 Set up automated specification updates:
 
 ```bash
 #!/bin/bash
 # update-specs.sh
-spec-generator update /path/to/repo \
+uv run python -m spec_generator.cli update /path/to/repo \
   --existing-spec docs/current-spec.md \
   --output docs/updated-specs/ \
   --base-commit $(git rev-parse HEAD~1) \
   --target-commit $(git rev-parse HEAD)
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add tests for new features
-- Update documentation for API changes
-- Use type hints throughout
-- Write meaningful commit messages
-
-## License
-
-MIT
-
-## Acknowledgments
-
-- [LangChain](https://github.com/langchain-ai/langchain) for LLM integration framework
-- [Tree-sitter](https://tree-sitter.github.io/) for syntax tree parsing
-- [Typer](https://typer.tiangolo.com/) for CLI framework
-- [Rich](https://github.com/Textualize/rich) for beautiful terminal output
-- [Pydantic](https://pydantic-docs.helpmanual.io/) for data validation

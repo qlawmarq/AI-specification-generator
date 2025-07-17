@@ -1,6 +1,6 @@
 ### Project Awareness & Context
 
-- **This is the Japanese Specification Generator** - a LangChain-based CLI tool for generating Japanese IT specification documents from codebases
+- **This is the Specification Generator** - a LangChain-based CLI tool for generating IT specification documents from codebases
 - **Read `README.md`** at the start of a new conversation to understand the project's features, architecture, and usage
 - **Use consistent naming conventions and architecture patterns** following the established codebase structure
 - **Use the installed virtual environment** when executing Python commands, including for unit tests
@@ -11,11 +11,11 @@
 - **Follow the established project structure**:
   - `core/` - Main processing engines (processor, generator, diff_detector, updater)
   - `parsers/` - Code parsing and AST analysis (tree_sitter_parser, ast_analyzer)
-  - `templates/` - Document templates and prompts (japanese_spec, prompts)
+  - `templates/` - Document templates and prompts (specification, prompts)
   - `utils/` - Utility modules (file_utils, git_utils, simple_memory, common)
 - **Use clear, consistent imports** (prefer relative imports within packages)
 - **Use `dotenv` and environment variables** for configuration (OpenAI keys, etc.)
-- **Follow existing patterns** for LangChain integration, Tree-sitter parsing, and Japanese output
+- **Follow existing patterns** for LangChain integration, Tree-sitter parsing, and output
 
 ### Testing & Reliability
 
@@ -47,7 +47,7 @@ Following TEST_REQ.md requirements, always test CLI commands comprehensively:
   uv run python -m spec_generator.cli update . --output spec-updates
   ```
 
-- **Verify specification content quality**: Generated specifications must be well-formed Japanese documents
+- **Verify specification content quality**: Generated specifications must be well-formed documents
 - **Environment variable testing**: Verify configuration loading works correctly:
   ```bash
   export REQUEST_TIMEOUT=60
@@ -105,6 +105,6 @@ Following TEST_REQ.md requirements, always test CLI commands comprehensively:
 - **Use only the libraries already specified in pyproject.toml** - don't add new dependencies without explicit request
 - **Always confirm file paths and module names** exist before referencing them in code or tests
 - **Never delete or overwrite existing code** unless explicitly instructed to
-- **Respect the Japanese focus** - ensure all generated documentation uses proper Japanese IT terminology
+- **Respect the focus** - ensure all generated documentation uses proper IT terminology
 - **Follow memory management patterns** - use streaming/async processing for large codebases
 - **Maintain LangChain patterns** - use the progressive prompting strategy (analysis → generation)

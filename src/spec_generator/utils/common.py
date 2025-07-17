@@ -1,5 +1,5 @@
 """
-Common utilities for the Japanese Specification Generator.
+Common utilities for the Specification Generator.
 
 This module provides standardized utilities for logging, error handling,
 console output, and file validation to reduce code duplication.
@@ -242,7 +242,7 @@ def get_env_var(
 
 def ensure_utf8_encoding(text: str) -> str:
     """
-    Ensure text is properly UTF-8 encoded for Japanese content.
+    Ensure text is properly UTF-8 encoded for content.
     Args:
         text: Text to check/encode.
     Returns:

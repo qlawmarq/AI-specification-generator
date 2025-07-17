@@ -34,7 +34,7 @@ class TestCLI:
         result = self.runner.invoke(app, ["--help"])
 
         assert result.exit_code == 0
-        assert "Japanese Specification Generator" in result.output
+        assert "Specification Generator" in result.output
         assert "generate" in result.output
         assert "update" in result.output
         assert "install-parsers" in result.output
@@ -44,7 +44,7 @@ class TestCLI:
         result = self.runner.invoke(app, ["--version"])
 
         assert result.exit_code == 0
-        assert "Japanese Specification Generator" in result.output
+        assert "Specification Generator" in result.output
         assert "version" in result.output
 
     def test_config_info_command(self):

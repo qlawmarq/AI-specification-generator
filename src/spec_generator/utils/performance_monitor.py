@@ -1,5 +1,5 @@
 """
-Performance monitoring utilities for the Japanese Specification Generator.
+Performance monitoring utilities for the Specification Generator.
 
 This module provides tools for tracking API call efficiency, response times,
 and batch processing optimization.

@@ -1,7 +1,7 @@
 """
-Japanese Specification Generator CLI Tool
+Specification Generator CLI Tool
 
-A LangChain-based CLI tool that automatically generates Japanese IT industry
+A LangChain-based CLI tool that automatically generates IT industry
 standard specification documents from codebases using Tree-sitter semantic
 analysis and progressive prompting.
 """

@@ -103,7 +103,7 @@ class TestGeminiProvider:
         """Gemini generation works with mocked response."""
         with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_llm:
             mock_instance = Mock()
-            mock_instance.invoke.return_value = "Generated Japanese text"
+            mock_instance.invoke.return_value = "Generated text"
             mock_llm.return_value = mock_instance
 
             config = SpecificationConfig(
@@ -113,7 +113,7 @@ class TestGeminiProvider:
 
             # Test generation
             result = asyncio.run(provider.generate("Test prompt"))
-            assert result == "Generated Japanese text"
+            assert result == "Generated text"
 
             # Verify invoke was called with correct prompt
             mock_instance.invoke.assert_called_once_with("Test prompt")
