@@ -1,5 +1,5 @@
 """
-Simple memory management utilities for the Japanese Specification Generator.
+Simple memory management utilities for the Specification Generator.
 
 This module provides basic memory monitoring without complex threading or caching.
 """

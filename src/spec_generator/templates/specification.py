@@ -1,7 +1,7 @@
 """
-Japanese specification document templates.
+specification document templates.
 
-This module provides templates for generating Japanese IT industry
+This module provides templates for generating IT industry
 standard specification documents with proper formatting and structure.
 """
 
@@ -12,8 +12,8 @@ from .table_formatters import TableFormatter
 from ..models import TableFormattingSettings
 
 
-class JapaneseSpecificationTemplate:
-    """Template for Japanese IT industry specification documents."""
+class SpecificationTemplate:
+    """Template for IT industry specification documents."""
 
     def __init__(self, project_name: str, version: str = "1.0", config=None):
         self.project_name = project_name
@@ -27,7 +27,7 @@ class JapaneseSpecificationTemplate:
             self.table_formatter = TableFormatter(TableFormattingSettings())
 
     def generate_header(self, document_type: str = "詳細設計書") -> str:
-        """Generate document header in Japanese format."""
+        """Generate document header in format."""
         return f"""# {self.project_name} {document_type}
 
 **文書バージョン**: {self.version}

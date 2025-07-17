@@ -1,8 +1,8 @@
 """
-Specification Generator using LangChain for Japanese IT documentation.
+Specification Generator using LangChain for IT documentation.
 
 This module implements the SpecificationGenerator that uses progressive prompting
-with LangChain to generate high-quality Japanese specification documents from
+with LangChain to generate high-quality specification documents from
 code analysis results.
 """
 
@@ -24,8 +24,8 @@ from ..models import (
     SpecificationConfig,
     SpecificationOutput,
 )
-from ..templates.japanese_spec import (
-    JapaneseSpecificationTemplate,
+from ..templates.specification import (
+    SpecificationTemplate,
 )
 from ..templates.prompts import JapanesePromptHelper, PromptTemplates
 from ..utils.performance_monitor import performance_monitor
@@ -580,14 +580,14 @@ class SpecificationGenerator:
 
     Implements a two-stage process:
     1. Code analysis using specialized prompts
-    2. Japanese specification generation using templates
+    2. specification generation using templates
     """
 
     def __init__(self, config: SpecificationConfig):
         self.config = config
         self.llm_provider = LLMProvider(config)
         self.analysis_processor = AnalysisProcessor(self.llm_provider)
-        self.spec_template = JapaneseSpecificationTemplate("システム仕様書", config=config)
+        self.spec_template = SpecificationTemplate("システム仕様書", config=config)
         self.prompt_templates = PromptTemplates()
         # Make actual_model_name accessible
         self._actual_model_name = self.llm_provider._actual_model_name
@@ -609,7 +609,7 @@ class SpecificationGenerator:
         output_path: Optional[Path] = None,
     ) -> SpecificationOutput:
         """
-        Generate Japanese specification document from code chunks.
+        Generate specification document from code chunks.
 
         Args:
             chunks: List of code chunks to analyze.

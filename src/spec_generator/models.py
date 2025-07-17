@@ -1,5 +1,5 @@
 """
-Core data models for the Japanese Specification Generator.
+Core data models for the Specification Generator.
 
 This module defines Pydantic models for type safety and configuration management.
 """
@@ -79,11 +79,11 @@ class TableFormattingSettings(BaseModel):
     max_methods_per_cell: int = Field(default=5, description="Maximum methods shown per cell")
     method_separator: str = Field(default=", ", description="Separator for method lists")
     truncation_suffix: str = Field(default="...", description="Suffix for truncated content")
-    preserve_japanese: bool = Field(default=True, description="Preserve Japanese character integrity")
+    preserve_japanese: bool = Field(default=True, description="Preserve character integrity")
 
 
 class JapaneseSpecSettings(BaseModel):
-    """Settings for Japanese specification generation."""
+    """Settings for specification generation."""
 
     document_title: str = Field(default="システム仕様書", description="Document title")
     include_toc: bool = Field(default=True, description="Include table of contents")
@@ -188,10 +188,10 @@ class SpecificationConfig(BaseModel):
         description="Mapping of languages to Tree-sitter modules",
     )
 
-    # Japanese Specification Settings
+    # Specification Settings
     japanese_spec_settings: JapaneseSpecSettings = Field(
         default_factory=JapaneseSpecSettings,
-        description="Japanese specification generation settings",
+        description="specification generation settings",
     )
 
     # Performance Settings

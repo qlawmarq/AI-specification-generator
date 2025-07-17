@@ -1,7 +1,7 @@
 [project]
 name = "spec-generator"
 version = "0.1.0"
-description = "LangChain-based CLI tool for generating Japanese IT specification documents from codebases"
+description = "LangChain-based CLI tool for generating IT specification documents from codebases"
 authors = [
     { name = "Your Name", email = "your.email@example.com" }
 ]

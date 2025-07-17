@@ -2,7 +2,7 @@
 Comprehensive tests for table formatting functionality.
 
 This module tests table cell content constraints, method list truncation,
-Japanese character handling, and integration with the generation pipeline.
+character handling, and integration with the generation pipeline.
 """
 
 import pytest
@@ -14,7 +14,7 @@ from src.spec_generator.templates.table_formatters import (
     TableCellContent,
     ClassMethodTableRow,
 )
-from src.spec_generator.templates.japanese_spec import JapaneseSpecificationTemplate
+from src.spec_generator.templates.specification import SpecificationTemplate
 
 
 class TestTableFormattingSettings:
@@ -199,9 +199,9 @@ class TestTableFormatter:
         assert result.endswith("...")
 
     def test_japanese_character_handling(self):
-        """Japanese characters count correctly for length limits."""
+        """characters count correctly for length limits."""
         formatter = TableFormatter(TableFormattingSettings(max_cell_length=20))
-        japanese_text = "数値計算機能と履歴管理機能と統計機能と詳細分析機能"  # Long Japanese text
+        japanese_text = "数値計算機能と履歴管理機能と統計機能と詳細分析機能"  # Long text
         result = formatter.truncate_content(japanese_text)
         
         assert len(result) <= 20
@@ -291,14 +291,14 @@ class TestTableFormatter:
 
 
 class TestJapaneseSpecificationTemplateIntegration:
-    """Test integration with Japanese specification template."""
+    """Test integration with specification template."""
 
     def test_template_with_table_formatter(self):
         """Test template initialization with configuration."""
         from src.spec_generator.models import SpecificationConfig
         
         config = SpecificationConfig()
-        template = JapaneseSpecificationTemplate("test", config=config)
+        template = SpecificationTemplate("test", config=config)
         
         assert template.table_formatter is not None
         assert template.table_formatter.settings.max_cell_length == 80
@@ -308,7 +308,7 @@ class TestJapaneseSpecificationTemplateIntegration:
         from src.spec_generator.models import SpecificationConfig
         
         config = SpecificationConfig()
-        template = JapaneseSpecificationTemplate("test", config=config)
+        template = SpecificationTemplate("test", config=config)
         
         # Mock document data with many methods
         document_data = {
@@ -367,7 +367,7 @@ class TestJapaneseSpecificationTemplateIntegration:
         from src.spec_generator.models import SpecificationConfig
         
         config = SpecificationConfig()
-        template = JapaneseSpecificationTemplate("test", config=config)
+        template = SpecificationTemplate("test", config=config)
         
         # Document data that might cause issues
         document_data = {
@@ -432,7 +432,7 @@ class TestPerformanceAndEdgeCases:
         assert result.endswith("...")
 
     def test_mixed_language_content(self):
-        """Test mixed Japanese and English content."""
+        """Test mixed and English content."""
         formatter = TableFormatter()
         content = "Calculate値計算ProcessデータHandleエラー処理"
         result = formatter.truncate_content(content, 30)
@@ -489,7 +489,7 @@ def test_complex_integration_scenario(sample_complex_document_data):
     from src.spec_generator.models import SpecificationConfig
     
     config = SpecificationConfig()
-    template = JapaneseSpecificationTemplate("test", config=config)
+    template = SpecificationTemplate("test", config=config)
     
     result = template._generate_class_method_section(sample_complex_document_data)
     

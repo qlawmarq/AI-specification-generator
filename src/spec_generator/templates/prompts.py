@@ -1,8 +1,8 @@
 """
-LangChain prompt templates for Japanese specification generation.
+LangChain prompt templates for specification generation.
 
 This module defines prompt templates for progressive prompting strategy,
-including analysis prompts and Japanese specification generation prompts.
+including analysis prompts and specification generation prompts.
 """
 
 from typing import Any
@@ -93,7 +93,7 @@ JSON形式で構造化して出力してください:
 分析は技術的に正確で、日本のIT業界の標準的な表現を使用してください。""",
     )
 
-    # Japanese Specification Generation Prompt (Stage 2)
+    # Specification Generation Prompt (Stage 2)
     JAPANESE_SPEC_PROMPT = PromptTemplate(
         input_variables=[
             "analysis_results",
@@ -294,11 +294,11 @@ JSON形式で構造化して出力してください:
 
 
 class JapanesePromptHelper:
-    """Helper class for Japanese prompt formatting."""
+    """Helper class for prompt formatting."""
 
     @staticmethod
     def format_function_list(functions: list) -> str:
-        """Format function list for Japanese prompts."""
+        """Format function list for prompts."""
         if not functions:
             return "関数は定義されていません。"
 
@@ -316,7 +316,7 @@ class JapanesePromptHelper:
 
     @staticmethod
     def format_class_list(classes: list) -> str:
-        """Format class list for Japanese prompts with enhanced class structure awareness."""
+        """Format class list for prompts with enhanced class structure awareness."""
         if not classes:
             return "クラスは定義されていません。"
 
@@ -356,7 +356,7 @@ class JapanesePromptHelper:
 
     @staticmethod
     def format_dependency_list(dependencies: list) -> str:
-        """Format dependency list for Japanese prompts."""
+        """Format dependency list for prompts."""
         if not dependencies:
             return "外部依存関係はありません。"
 

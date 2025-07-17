@@ -17,8 +17,8 @@ from ..models import (
     SpecificationConfig,
     SpecificationOutput,
 )
-from ..templates.japanese_spec import (
-    JapaneseSpecificationTemplate,
+from ..templates.specification import (
+    SpecificationTemplate,
 )
 from ..templates.prompts import PromptTemplates
 from .generator import LLMProvider, SpecificationGenerator
@@ -233,7 +233,7 @@ class SpecificationUpdater:
         self.generator = SpecificationGenerator(config)
         self.parser = DocumentParser()
         self.analyzer = ChangeAnalyzer()
-        self.template = JapaneseSpecificationTemplate("更新された仕様書")
+        self.template = SpecificationTemplate("更新された仕様書")
 
         logger.info("SpecificationUpdater initialized")
 

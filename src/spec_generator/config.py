@@ -1,5 +1,5 @@
 """
-Configuration management for the Japanese Specification Generator.
+Configuration management for the Specification Generator.
 
 This module provides centralized configuration loading and management.
 """

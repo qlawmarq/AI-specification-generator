@@ -1,5 +1,5 @@
 """
-Table formatting utilities for Japanese specification generation.
+Table formatting utilities for specification generation.
 
 This module provides utilities for formatting table content with proper length
 constraints to ensure readable markdown table output.
@@ -167,7 +167,7 @@ class TableFormatter:
 
         max_length = 50  # Role column limit
         if len(role) > max_length:
-            # Try to truncate at Japanese sentence boundaries
+            # Try to truncate at sentence boundaries
             return self._truncate_japanese_text(role, max_length)
         return role
 
@@ -189,7 +189,7 @@ class TableFormatter:
         return remarks
 
     def truncate_content(self, content: str, max_length: Optional[int] = None) -> str:
-        """Truncate content with Japanese character awareness.
+        """Truncate content with character awareness.
 
         Args:
             content: Content to truncate
@@ -266,14 +266,14 @@ class TableFormatter:
             return text[:max_length]
 
     def _truncate_japanese_text(self, text: str, max_length: int) -> str:
-        """Truncate Japanese text while preserving character integrity.
+        """Truncate text while preserving character integrity.
 
         Args:
-            text: Japanese text to truncate
+            text: text to truncate
             max_length: Maximum length
 
         Returns:
-            Truncated Japanese text
+            Truncated text
         """
         if len(text) <= max_length:
             return text
@@ -285,9 +285,9 @@ class TableFormatter:
         if max_content_length <= 0:
             return suffix
 
-        # For Japanese text, try to break at word boundaries
+        # For text, try to break at word boundaries
         if self.settings.preserve_japanese:
-            # Simple approach: break at Japanese punctuation if possible
+            # Simple approach: break at punctuation if possible
             japanese_punct = r'[。、！？]'
             matches = list(re.finditer(japanese_punct, text[:max_content_length]))
 
@@ -306,6 +306,6 @@ class TableFormatter:
         Returns:
             True if character is Japanese
         """
-        # Basic Japanese character ranges
+        # Basic character ranges
         return bool(re.match(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]', char))
 
