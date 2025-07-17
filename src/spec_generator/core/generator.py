@@ -587,7 +587,7 @@ class SpecificationGenerator:
         self.config = config
         self.llm_provider = LLMProvider(config)
         self.analysis_processor = AnalysisProcessor(self.llm_provider)
-        self.spec_template = JapaneseSpecificationTemplate("システム仕様書")
+        self.spec_template = JapaneseSpecificationTemplate("システム仕様書", config=config)
         self.prompt_templates = PromptTemplates()
         # Make actual_model_name accessible
         self._actual_model_name = self.llm_provider._actual_model_name

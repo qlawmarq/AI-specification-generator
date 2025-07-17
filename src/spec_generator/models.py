@@ -72,6 +72,16 @@ class SemanticChange(BaseModel):
         return v
 
 
+class TableFormattingSettings(BaseModel):
+    """Configuration for table cell content formatting."""
+    
+    max_cell_length: int = Field(default=80, description="Maximum characters per table cell")
+    max_methods_per_cell: int = Field(default=5, description="Maximum methods shown per cell")
+    method_separator: str = Field(default=", ", description="Separator for method lists")
+    truncation_suffix: str = Field(default="...", description="Suffix for truncated content")
+    preserve_japanese: bool = Field(default=True, description="Preserve Japanese character integrity")
+
+
 class JapaneseSpecSettings(BaseModel):
     """Settings for Japanese specification generation."""
 
@@ -188,6 +198,12 @@ class SpecificationConfig(BaseModel):
     performance_settings: PerformanceSettings = Field(
         default_factory=PerformanceSettings,
         description="Performance and rate limiting settings",
+    )
+
+    # Table Formatting Settings
+    table_formatting: TableFormattingSettings = Field(
+        default_factory=TableFormattingSettings,
+        description="Table cell content formatting settings",
     )
 
     @validator("chunk_overlap")
