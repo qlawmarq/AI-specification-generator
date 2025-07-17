@@ -16,9 +16,13 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
     TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+    TaskProgressColumn,
 )
 from rich.table import Table
 
@@ -163,6 +167,9 @@ def generate(
     use_semantic_chunking: bool = typer.Option(
         False, "--semantic-chunking", help="Use semantic chunking"
     ),
+    timeout: int = typer.Option(
+        600, "--timeout", "-t", help="Overall timeout in seconds (default: 600)"
+    ),
 ):
     """
     Generate specification for a single file.
@@ -174,14 +181,27 @@ def generate(
         console.print("[bold blue]Specification Generation[/bold blue]")
         console.print(f"File: [green]{file_path}[/green]")
         console.print(f"Output: [green]{output}[/green]")
+        console.print(f"Timeout: [yellow]{timeout}s[/yellow]")
 
         # Load configuration
         global current_config
         current_config = load_config()
         validate_config(current_config)
 
-        # Run single file processing
-        asyncio.run(_run_single_file(file_path, output, use_semantic_chunking))
+        # Run single file processing with timeout
+        try:
+            asyncio.run(
+                asyncio.wait_for(
+                    _run_single_file(file_path, output, use_semantic_chunking),
+                    timeout=timeout
+                )
+            )
+        except asyncio.TimeoutError:
+            console.print(f"[red]Generation timed out after {timeout} seconds[/red]")
+            console.print(
+                "[yellow]Try increasing the timeout with --timeout option or check for performance issues[/yellow]"
+            )
+            raise typer.Exit(1)
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -329,41 +349,86 @@ async def _run_update(
 
 
 async def _run_single_file(file_path: Path, output: Path, use_semantic_chunking: bool):
-    """Run single file processing."""
+    """Run single file processing with enhanced progress tracking."""
     processor = LargeCodebaseProcessor(current_config)
 
+    # Enhanced progress tracking with detailed stages
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("Processing file...", total=None)
+
+        # Overall progress task
+        overall_task = progress.add_task(
+            description="[bold blue]Overall Progress", total=100
+        )
+
+        # Stage 1: File Processing (30% of total)
+        progress.update(overall_task, description="[blue]Stage 1: Processing file...")
+        file_task = progress.add_task(description="Processing file chunks...", total=100)
 
         chunks = await processor.process_single_file(
             file_path, use_semantic_chunking, True
         )
 
-        progress.remove_task(task)
+        progress.update(file_task, completed=100)
+        progress.update(overall_task, completed=30)
 
-    if not chunks:
-        console.print("[red]No chunks generated from file[/red]")
-        return
+        if not chunks:
+            console.print("[red]No chunks generated from file[/red]")
+            return
 
-    # Generate specification
-    generator = SpecificationGenerator(current_config)
+        # Stage 2: Analysis (50% of total)
+        progress.update(overall_task, description="[yellow]Stage 2: Analyzing code chunks...")
+        analysis_task = progress.add_task(
+            description=f"Analyzing {len(chunks)} chunks...", total=len(chunks)
+        )
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Generating specification...", total=None)
+        # Create generator and start analysis with progress callback
+        generator = SpecificationGenerator(current_config)
+
+        # Monkey patch to track analysis progress
+        original_analyze_chunks = generator._analyze_chunks
+
+        async def analyze_chunks_with_progress(chunks_to_analyze):
+            """Wrapper to track analysis progress."""
+            analyses = []
+            optimal_batch_size = generator._calculate_optimal_batch_size(len(chunks_to_analyze))
+
+            for i in range(0, len(chunks_to_analyze), optimal_batch_size):
+                batch = chunks_to_analyze[i : i + optimal_batch_size]
+                batch_results = await generator.analysis_processor.analyze_code_chunks_batch(batch)
+                analyses.extend(batch_results)
+
+                # Update progress
+                completed = min(i + len(batch), len(chunks_to_analyze))
+                progress.update(analysis_task, completed=completed)
+
+            return analyses
+
+        # Use the enhanced analysis method
+        generator._analyze_chunks = analyze_chunks_with_progress
+
+        # Stage 3: Generation (20% of total)
+        progress.update(overall_task, completed=80, description="[green]Stage 3: Generating specification...")
+        gen_task = progress.add_task(description="Generating Japanese specification...", total=100)
 
         await generator.generate_specification(chunks, file_path.stem, output)
 
-        progress.remove_task(task)
+        progress.update(gen_task, completed=100)
+        progress.update(overall_task, completed=100, description="[green]✓ Complete!")
+
+        # Brief pause to show completion
+        import asyncio
+        await asyncio.sleep(0.5)
 
     console.print(f"[green]✓[/green] Specification saved to [green]{output}[/green]")
+    console.print(f"[dim]Processed {len(chunks)} code chunks successfully[/dim]")
 
 
 

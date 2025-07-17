@@ -88,6 +88,9 @@ class PerformanceSettings(BaseModel):
     request_timeout: int = Field(
         default=300, ge=1, description="Request timeout in seconds"
     )
+    cli_timeout_seconds: int = Field(
+        default=600, ge=1, description="CLI-level timeout in seconds"
+    )
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
     retry_delay: int = Field(
         default=1, ge=0, description="Delay between retries in seconds"
@@ -96,6 +99,12 @@ class PerformanceSettings(BaseModel):
         default=200, ge=1, description="Rate limit requests per minute"
     )
     batch_size: int = Field(default=10, ge=1, description="Batch size for processing")
+    enable_batch_processing: bool = Field(
+        default=True, description="Enable batch processing for LLM calls"
+    )
+    batch_optimization_strategy: str = Field(
+        default="adaptive", description="Batch optimization strategy (adaptive, fixed, aggressive)"
+    )
 
 
 class SpecificationConfig(BaseModel):

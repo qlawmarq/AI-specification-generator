@@ -28,6 +28,7 @@ from ..templates.japanese_spec import (
     JapaneseSpecificationTemplate,
 )
 from ..templates.prompts import JapanesePromptHelper, PromptTemplates
+from ..utils.performance_monitor import performance_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -105,31 +106,147 @@ class LLMProvider:
         return "unknown"
 
     async def generate(self, prompt: str, **kwargs) -> str:
-        """Generate response with rate limiting."""
-        await self._rate_limit()
+        """Generate response with rate limiting and retry logic."""
+        max_retries = self.config.performance_settings.max_retries
+        retry_delay = self.config.performance_settings.retry_delay
 
-        try:
-            # Use async execution with timeout to avoid blocking
-            # Reason: Apply configured timeout to LLM operations to prevent infinite waits
-            timeout_seconds = self.config.performance_settings.request_timeout
-            response = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
-                    None, self.llm.invoke, prompt
-                ),
-                timeout=timeout_seconds,
-            )
+        for attempt in range(max_retries + 1):
+            try:
+                await self._rate_limit()
 
-            self.request_count += 1
-            logger.debug(f"LLM request {self.request_count} completed")
-            
-            # Extract content from AIMessage if needed
-            if hasattr(response, 'content'):
-                return response.content
-            return response
+                # Use async execution with timeout to avoid blocking
+                # Reason: Apply configured timeout to LLM operations to prevent infinite waits
+                timeout_seconds = self.config.performance_settings.request_timeout
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, self.llm.invoke, prompt
+                    ),
+                    timeout=timeout_seconds,
+                )
 
-        except Exception as e:
-            logger.error(f"LLM generation failed: {e}")
-            raise
+                self.request_count += 1
+                logger.debug(f"LLM request {self.request_count} completed")
+
+                # Extract content from AIMessage if needed
+                if hasattr(response, 'content'):
+                    return response.content
+                return response
+
+            except asyncio.TimeoutError:
+                if attempt < max_retries:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(f"Request timeout (attempt {attempt + 1}), retrying in {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Request failed after {max_retries + 1} attempts due to timeout")
+                    raise
+
+            except Exception as e:
+                error_type = type(e).__name__
+                error_msg = str(e)
+
+                # Check for rate limit errors
+                if "rate limit" in error_msg.lower() or "429" in error_msg:
+                    if attempt < max_retries:
+                        wait_time = retry_delay * (2 ** attempt) + 10
+                        logger.warning(f"Rate limit exceeded (attempt {attempt + 1}), retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                # Check for temporary network errors
+                if error_type in ["ConnectionError", "HTTPError", "RequestException"]:
+                    if attempt < max_retries:
+                        wait_time = retry_delay * (2 ** attempt)
+                        logger.warning(f"Network error {error_type} (attempt {attempt + 1}), retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                # For other errors, fail immediately
+                logger.error(f"LLM generation failed: {error_type}: {e}")
+                raise
+
+    async def generate_batch(self, prompts: list[str], **kwargs) -> list[str]:
+        """Generate responses for multiple prompts using LangChain's batch processing with retry logic."""
+        if not prompts:
+            return []
+
+        max_retries = self.config.performance_settings.max_retries
+        retry_delay = self.config.performance_settings.retry_delay
+
+        for attempt in range(max_retries + 1):
+            try:
+                # Apply rate limiting for batch
+                await self._rate_limit()
+
+                # Use LangChain's native batch processing with timeout
+                timeout_seconds = self.config.performance_settings.request_timeout
+
+                logger.debug(f"Processing batch of {len(prompts)} prompts (attempt {attempt + 1})")
+                start_time = time.time()
+
+                # Use abatch for async batch processing
+                responses = await asyncio.wait_for(
+                    self.llm.abatch(prompts),
+                    timeout=timeout_seconds * len(prompts)  # Scale timeout with batch size
+                )
+
+                batch_duration = time.time() - start_time
+                self.request_count += len(prompts)
+
+                # Record performance metrics
+                performance_monitor.record_batch(
+                    batch_size=len(prompts),
+                    duration=batch_duration,
+                    success_count=len(prompts),
+                    failure_count=0
+                )
+
+                logger.info(f"Batch of {len(prompts)} completed in {batch_duration:.2f}s "
+                           f"({batch_duration/len(prompts):.2f}s per prompt)")
+
+                # Extract content from responses
+                results = []
+                for response in responses:
+                    if hasattr(response, 'content'):
+                        results.append(response.content)
+                    else:
+                        results.append(str(response))
+
+                return results
+
+            except asyncio.TimeoutError:
+                if attempt < max_retries:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    logger.warning(f"Batch timeout (attempt {attempt + 1}), retrying in {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Batch processing failed after {max_retries + 1} attempts due to timeout")
+                    raise
+
+            except Exception as e:
+                error_type = type(e).__name__
+
+                # Check for rate limit errors
+                if "rate limit" in str(e).lower() or "429" in str(e):
+                    if attempt < max_retries:
+                        wait_time = retry_delay * (2 ** attempt) + 10  # Extra delay for rate limits
+                        logger.warning(f"Rate limit exceeded (attempt {attempt + 1}), retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                # Check for temporary network errors
+                if error_type in ["ConnectionError", "HTTPError", "RequestException"]:
+                    if attempt < max_retries:
+                        wait_time = retry_delay * (2 ** attempt)
+                        logger.warning(f"Network error {error_type} (attempt {attempt + 1}), retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                # For other errors, fail immediately
+                logger.error(f"Batch LLM generation failed: {error_type}: {e}")
+                raise
 
     async def _rate_limit(self) -> None:
         """Implement rate limiting based on RPM."""
@@ -189,6 +306,62 @@ class AnalysisProcessor:
                 "data_flow": "Unknown",
                 "error_handling": "Unknown",
             }
+
+    async def analyze_code_chunks_batch(self, chunks: list[CodeChunk]) -> list[dict[str, Any]]:
+        """Analyze multiple code chunks using batch processing."""
+        if not chunks:
+            return []
+
+        try:
+            # Prepare all prompts for batch processing
+            prompts = []
+            for chunk in chunks:
+                ast_info = (
+                    f"ファイル: {chunk.file_path}\n"
+                    f"言語: {chunk.language.value}\n"
+                    f"行数: {chunk.start_line}-{chunk.end_line}"
+                )
+
+                prompt = self.prompt_templates.ANALYSIS_PROMPT.format(
+                    code_content=chunk.content,
+                    file_path=str(chunk.file_path),
+                    language=chunk.language.value,
+                    ast_info=ast_info,
+                )
+                prompts.append(prompt)
+
+            # Use batch generation
+            logger.info(f"Processing {len(chunks)} chunks in batch")
+            batch_results = await self.llm_provider.generate_batch(prompts)
+
+            # Parse all responses
+            analyses = []
+            for i, result in enumerate(batch_results):
+                try:
+                    analysis = self._parse_analysis_response(result)
+                    analyses.append(analysis)
+                except Exception as e:
+                    logger.error(f"Failed to parse analysis for chunk {i}: {e}")
+                    analyses.append({
+                        "overview": f"Parsing failed: {str(e)}",
+                        "functions": [],
+                        "classes": [],
+                        "dependencies": [],
+                        "data_flow": "Unknown",
+                        "error_handling": "Unknown",
+                    })
+
+            return analyses
+
+        except Exception as e:
+            logger.error(f"Batch analysis failed: {e}")
+            # Fallback to individual processing
+            logger.warning("Falling back to individual chunk processing")
+            analyses = []
+            for chunk in chunks:
+                analysis = await self.analyze_code_chunk(chunk)
+                analyses.append(analysis)
+            return analyses
 
     async def combine_analyses(self, analyses: list[dict[str, Any]]) -> dict[str, Any]:
         """Combine multiple analysis results into a cohesive summary."""
@@ -520,39 +693,81 @@ class SpecificationGenerator:
                 f"Specification generation completed in "
                 f"{output.processing_stats.processing_time_seconds:.2f}s"
             )
+
+            # Log performance summary
+            performance_monitor.log_performance_summary()
+
             return output
 
         except Exception as e:
             logger.error(f"Specification generation failed: {e}")
             raise
 
+    def _calculate_optimal_batch_size(self, total_chunks: int) -> int:
+        """Calculate optimal batch size based on total chunks and configuration."""
+        configured_batch_size = self.config.performance_settings.batch_size
+
+        # For small numbers of chunks, process all at once
+        if total_chunks <= 5:
+            return total_chunks
+
+        # For medium numbers, use configured batch size
+        if total_chunks <= configured_batch_size:
+            return configured_batch_size
+
+        # For large numbers, cap at a reasonable limit to prevent timeouts
+        max_batch_size = min(configured_batch_size, 20)
+        return max_batch_size
+
     async def _analyze_chunks(self, chunks: list[CodeChunk]) -> list[dict[str, Any]]:
-        """Analyze all code chunks."""
+        """Analyze all code chunks using optimized batch processing."""
+        if not chunks:
+            return []
+
         analyses = []
 
-        # Process chunks in batches to manage rate limits
-        batch_size = self.config.performance_settings.batch_size
+        # Calculate optimal batch size for this processing run
+        optimal_batch_size = self._calculate_optimal_batch_size(len(chunks))
 
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i : i + batch_size]
-            logger.debug(f"Processing analysis batch {i // batch_size + 1}")
+        logger.info(f"Processing {len(chunks)} chunks with batch size {optimal_batch_size}")
 
-            # Process batch concurrently
-            batch_tasks = [
-                self.analysis_processor.analyze_code_chunk(chunk) for chunk in batch
-            ]
+        # Process chunks in optimized batches
+        for i in range(0, len(chunks), optimal_batch_size):
+            batch = chunks[i : i + optimal_batch_size]
+            batch_num = i // optimal_batch_size + 1
+            total_batches = (len(chunks) + optimal_batch_size - 1) // optimal_batch_size
 
-            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+            logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch)} chunks)")
 
-            # Collect successful results
-            for result in batch_results:
-                if isinstance(result, Exception):
-                    logger.error(f"Chunk analysis failed: {result}")
-                    self.stats.errors_encountered.append(str(result))
-                else:
-                    analyses.append(result)
+            try:
+                # Use the new batch processing method
+                start_time = time.time()
+                batch_results = await self.analysis_processor.analyze_code_chunks_batch(batch)
+                batch_duration = time.time() - start_time
+
+                logger.info(f"Batch {batch_num} completed in {batch_duration:.2f}s "
+                           f"({batch_duration/len(batch):.2f}s per chunk)")
+
+                # Collect results
+                analyses.extend(batch_results)
+
+            except Exception as e:
+                logger.error(f"Batch {batch_num} failed: {e}")
+                self.stats.errors_encountered.append(f"Batch {batch_num}: {str(e)}")
+
+                # Add placeholder analyses for failed batch
+                for chunk in batch:
+                    analyses.append({
+                        "overview": f"Batch processing failed: {str(e)}",
+                        "functions": [],
+                        "classes": [],
+                        "dependencies": [],
+                        "data_flow": "Unknown",
+                        "error_handling": "Unknown",
+                    })
 
         self.stats.chunks_created = len(analyses)
+        logger.info(f"Total analysis completed: {len(analyses)} chunks processed")
         return analyses
 
     async def _generate_specification_document(
