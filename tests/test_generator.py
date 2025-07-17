@@ -84,7 +84,7 @@ class TestLLMProvider:
 
         with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
-            mock_llm.predict.return_value = "Generated response"
+            mock_llm.invoke.return_value = "Generated response"
             mock_chat_openai.return_value = mock_llm
 
             provider = LLMProvider(config)
@@ -108,7 +108,7 @@ class TestLLMProvider:
 
         with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
-            mock_llm.predict.return_value = "Generated response"
+            mock_llm.invoke.return_value = "Generated response"
             mock_chat_openai.return_value = mock_llm
 
             provider = LLMProvider(config)
@@ -141,7 +141,7 @@ class TestLLMProvider:
 
         with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
-            mock_llm.predict.side_effect = Exception("API Error")
+            mock_llm.invoke.side_effect = Exception("API Error")
             mock_chat_openai.return_value = mock_llm
 
             provider = LLMProvider(config)

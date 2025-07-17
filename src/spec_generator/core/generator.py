@@ -49,27 +49,19 @@ class LLMProvider:
 
         if provider == "gemini" and self.config.gemini_api_key:
             # Gemini API
-            import httpx
             from langchain_google_genai import ChatGoogleGenerativeAI
 
             # Use gemini-specific model names
             model = self.config.llm_model or "gemini-2.0-flash"
             self._actual_model_name = model  # Store for metadata
 
-            # Create async client with timeout configuration
-            timeout_config = httpx.Timeout(
-                timeout=self.config.performance_settings.request_timeout,
-                connect=5.0,
-                read=self.config.performance_settings.request_timeout - 5.0,
-            )
-            async_client = httpx.AsyncClient(timeout=timeout_config)
+            # Note: ChatGoogleGenerativeAI handles async operations internally
 
             return ChatGoogleGenerativeAI(
                 model=model,
                 temperature=0.3,
                 google_api_key=self.config.gemini_api_key,
                 max_retries=self.config.performance_settings.max_retries,
-                http_async_client=async_client,
             )
         elif (
             provider == "azure"
@@ -122,13 +114,17 @@ class LLMProvider:
             timeout_seconds = self.config.performance_settings.request_timeout
             response = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
-                    None, self.llm.predict, prompt
+                    None, self.llm.invoke, prompt
                 ),
                 timeout=timeout_seconds,
             )
 
             self.request_count += 1
             logger.debug(f"LLM request {self.request_count} completed")
+            
+            # Extract content from AIMessage if needed
+            if hasattr(response, 'content'):
+                return response.content
             return response
 
         except Exception as e:

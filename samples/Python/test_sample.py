@@ -188,6 +188,27 @@ class Calculator:
         result = a / b
         self.history.append(f"{a} / {b} = {result}")
         return result
+    
+    def average(self, numbers: list[Union[int, float]]) -> float:
+        """
+        数値リストの平均を計算します。
+
+        Args:
+            numbers: 平均を計算する数値のリスト
+
+        Returns:
+            平均値
+
+        Raises:
+            ValueError: 空のリストの場合
+        """
+        if not numbers:
+            raise ValueError("空のリストの平均は計算できません")
+        
+        total = sum(numbers)
+        avg = total / len(numbers)
+        self.history.append(f"average({numbers}) = {avg}")
+        return avg
 
     def get_history(self) -> list[str]:
         """

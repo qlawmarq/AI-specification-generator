@@ -103,7 +103,7 @@ class TestGeminiProvider:
         """Gemini generation works with mocked response."""
         with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_llm:
             mock_instance = Mock()
-            mock_instance.predict.return_value = "Generated Japanese text"
+            mock_instance.invoke.return_value = "Generated Japanese text"
             mock_llm.return_value = mock_instance
 
             config = SpecificationConfig(
@@ -115,14 +115,14 @@ class TestGeminiProvider:
             result = asyncio.run(provider.generate("Test prompt"))
             assert result == "Generated Japanese text"
 
-            # Verify predict was called with correct prompt
-            mock_instance.predict.assert_called_once_with("Test prompt")
+            # Verify invoke was called with correct prompt
+            mock_instance.invoke.assert_called_once_with("Test prompt")
 
     def test_gemini_generation_with_error(self):
         """Gemini generation handles errors gracefully."""
         with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_llm:
             mock_instance = Mock()
-            mock_instance.predict.side_effect = Exception("API Error")
+            mock_instance.invoke.side_effect = Exception("API Error")
             mock_llm.return_value = mock_instance
 
             config = SpecificationConfig(
@@ -154,7 +154,7 @@ class TestGeminiProvider:
 
         with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_llm:
             mock_instance = Mock()
-            mock_instance.predict.return_value = "Generated text"
+            mock_instance.invoke.return_value = "Generated text"
             mock_llm.return_value = mock_instance
 
             config = SpecificationConfig(
