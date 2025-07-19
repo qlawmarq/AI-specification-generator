@@ -49,9 +49,6 @@ class LanguageDetector:
         ".hpp": Language.CPP,
         ".hxx": Language.CPP,
         ".hh": Language.CPP,
-        # C
-        ".c": Language.C,
-        ".h": Language.C,
     }
 
     # Content-based detection patterns

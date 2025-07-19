@@ -15,28 +15,13 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 # Supported language parsers and their package names
+# Aligned with src/spec_generator/models.py Language enum
 LANGUAGE_PARSERS = {
     "python": "tree-sitter-python",
     "javascript": "tree-sitter-javascript",
     "typescript": "tree-sitter-typescript",
     "java": "tree-sitter-java",
     "cpp": "tree-sitter-cpp",
-    "c": "tree-sitter-c",
-    "go": "tree-sitter-go",
-    "rust": "tree-sitter-rust",
-    "ruby": "tree-sitter-ruby",
-    "php": "tree-sitter-php",
-    "kotlin": "tree-sitter-kotlin",
-    "swift": "tree-sitter-swift",
-    "csharp": "tree-sitter-c-sharp",
-    "scala": "tree-sitter-scala",
-    "shell": "tree-sitter-bash",
-    "yaml": "tree-sitter-yaml",
-    "json": "tree-sitter-json",
-    "html": "tree-sitter-html",
-    "css": "tree-sitter-css",
-    "sql": "tree-sitter-sql",
-    "dockerfile": "tree-sitter-dockerfile",
 }
 
 # Language aliases for user convenience
@@ -44,21 +29,17 @@ LANGUAGE_ALIASES = {
     "js": "javascript",
     "ts": "typescript",
     "py": "python",
-    "cs": "csharp",
     "c++": "cpp",
-    "bash": "shell",
-    "sh": "shell",
-    "yml": "yaml",
 }
 
 # Core languages that should be installed by default
+# All supported languages are core languages now
 DEFAULT_CORE_LANGUAGES = [
     "python",
     "javascript",
     "typescript",
     "java",
     "cpp",
-    "c",
 ]
 
 

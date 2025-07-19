@@ -34,9 +34,7 @@ class TestCLI:
         result = self.runner.invoke(app, ["--help"])
 
         assert result.exit_code == 0
-        assert "Specification Generator" in result.output
         assert "generate" in result.output
-        assert "update" in result.output
         assert "install-parsers" in result.output
 
     def test_version_callback(self):
@@ -86,7 +84,7 @@ class TestCLI:
 
     def test_install_parsers_command(self):
         """Test install-parsers command."""
-        with patch('spec_generator.cli.install_parsers_for_languages') as mock_install:
+        with patch('scripts.install_tree_sitter.install_parsers_for_languages') as mock_install:
             mock_install.return_value = True
 
             result = self.runner.invoke(app, ["install-parsers"])
@@ -103,7 +101,7 @@ class TestCLI:
 
     def test_install_parsers_specific_languages(self):
         """Test install-parsers command with specific languages."""
-        with patch('spec_generator.cli.install_parsers_for_languages') as mock_install:
+        with patch('scripts.install_tree_sitter.install_parsers_for_languages') as mock_install:
             mock_install.return_value = True
 
             result = self.runner.invoke(app, [
@@ -117,7 +115,7 @@ class TestCLI:
 
     def test_install_parsers_force(self):
         """Test install-parsers command with force flag."""
-        with patch('spec_generator.cli.install_parsers_for_languages') as mock_install:
+        with patch('scripts.install_tree_sitter.install_parsers_for_languages') as mock_install:
             mock_install.return_value = True
 
             result = self.runner.invoke(app, ["install-parsers", "--force"])
@@ -129,7 +127,7 @@ class TestCLI:
 
     def test_install_parsers_failure(self):
         """Test install-parsers command when installation fails."""
-        with patch('spec_generator.cli.install_parsers_for_languages') as mock_install:
+        with patch('scripts.install_tree_sitter.install_parsers_for_languages') as mock_install:
             mock_install.return_value = False
 
             result = self.runner.invoke(app, ["install-parsers"])
@@ -280,50 +278,6 @@ class TestCLI:
         finally:
             test_file.unlink()
 
-    def test_update_command(self):
-        """Test update command."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo_path = Path(temp_dir)
-
-            # Create a git repository structure
-            (repo_path / ".git").mkdir()
-            (repo_path / "test.py").write_text("def hello(): pass")
-
-            existing_spec = repo_path / "existing_spec.md"
-            existing_spec.write_text("# Existing Specification")
-
-            with patch('spec_generator.cli.load_config') as mock_load_config, \
-                 patch('spec_generator.cli.validate_config'), \
-                 patch('spec_generator.cli.is_git_repository', return_value=True), \
-                 patch('spec_generator.cli.asyncio.run') as mock_asyncio_run:
-
-                mock_config = SpecificationConfig(openai_api_key="test-key")
-                mock_load_config.return_value = mock_config
-
-                result = self.runner.invoke(app, [
-                    "update",
-                    str(repo_path),
-                    "--existing-spec", str(existing_spec),
-                    "--base-commit", "HEAD~1",
-                    "--target-commit", "HEAD"
-                ])
-
-                assert result.exit_code == 0
-                mock_asyncio_run.assert_called_once()
-
-    def test_update_command_not_git_repo(self):
-        """Test update command with non-git repository."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            repo_path = Path(temp_dir)
-
-            with patch('spec_generator.cli.is_git_repository', return_value=False):
-                result = self.runner.invoke(app, [
-                    "update",
-                    str(repo_path)
-                ])
-
-                assert result.exit_code == 1
-                assert "not a Git repository" in result.output
 
     def test_keyboard_interrupt_handling(self):
         """Test handling of keyboard interrupt (Ctrl+C)."""

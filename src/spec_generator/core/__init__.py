@@ -1,13 +1,13 @@
 """Core processing modules for specification generation."""
 
-from .diff_detector import SemanticDiffDetector
+from .analysis_processor import AnalysisProcessor
 from .generator import SpecificationGenerator
+from .llm_provider import LLMProvider
 from .processor import LargeCodebaseProcessor
-from .updater import SpecificationUpdater
 
 __all__ = [
+    "AnalysisProcessor",
+    "LLMProvider",
     "SpecificationGenerator",
     "LargeCodebaseProcessor",
-    "SemanticDiffDetector",
-    "SpecificationUpdater",
 ]

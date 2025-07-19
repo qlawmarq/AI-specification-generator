@@ -173,7 +173,6 @@ class ASTAnalyzer:
             Language.TYPESCRIPT: [".ts", ".tsx"],
             Language.JAVA: [".java"],
             Language.CPP: [".cpp", ".cxx", ".cc", ".hpp", ".h"],
-            Language.C: [".c", ".h"],
         }
 
         analyzed_modules = {}

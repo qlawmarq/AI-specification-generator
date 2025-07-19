@@ -96,116 +96,10 @@ class TableFormatter:
         """Initialize table formatter with configuration settings."""
         self.settings = settings or TableFormattingSettings()
 
-    def format_method_list(self, methods: list[str]) -> str:
-        """Format method list with length constraints.
 
-        Args:
-            methods: List of method names to format
 
-        Returns:
-            Formatted method string with length constraints
-        """
-        if not methods:
-            return "未定義"
 
-        # Take only the maximum allowed methods
-        truncated = methods[:self.settings.max_methods_per_cell]
-        result = self.settings.method_separator.join(truncated)
 
-        # Check if content was truncated due to method count or length
-        was_truncated_by_count = len(methods) > self.settings.max_methods_per_cell
-        original_length = len(result)
-        
-        # Check if result exceeds maximum cell length
-        if len(result) > self.settings.max_cell_length:
-            # Try to truncate gracefully at word boundaries
-            result = self._truncate_at_separator(result)
-
-        # Add truncation suffix if content was truncated
-        was_truncated_by_length = len(result) < original_length
-        if was_truncated_by_count or was_truncated_by_length:
-            if not result.endswith(self.settings.truncation_suffix):
-                # Ensure we have space for the suffix
-                max_content_length = (
-                    self.settings.max_cell_length -
-                    len(self.settings.truncation_suffix)
-                )
-                if len(result) > max_content_length:
-                    result = result[:max_content_length]
-                result += self.settings.truncation_suffix
-
-        return result
-
-    def format_class_name(self, name: str) -> str:
-        """Format class name with length constraints.
-
-        Args:
-            name: Class name to format
-
-        Returns:
-            Formatted class name
-        """
-        if not name:
-            return "未定義"
-
-        max_length = 30  # Class name column limit
-        if len(name) > max_length:
-            return name[:max_length - 3] + "..."
-        return name
-
-    def format_role_description(self, role: str) -> str:
-        """Format role description with length constraints.
-
-        Args:
-            role: Role description to format
-
-        Returns:
-            Formatted role description
-        """
-        if not role:
-            return "未定義"
-
-        max_length = 50  # Role column limit
-        if len(role) > max_length:
-            # Try to truncate at sentence boundaries
-            return self._truncate_japanese_text(role, max_length)
-        return role
-
-    def format_remarks(self, remarks: str) -> str:
-        """Format remarks with length constraints.
-
-        Args:
-            remarks: Remarks text to format
-
-        Returns:
-            Formatted remarks
-        """
-        if not remarks:
-            return "なし"
-
-        max_length = 40  # Remarks column limit
-        if len(remarks) > max_length:
-            return self._truncate_japanese_text(remarks, max_length)
-        return remarks
-
-    def truncate_content(self, content: str, max_length: Optional[int] = None) -> str:
-        """Truncate content with character awareness.
-
-        Args:
-            content: Content to truncate
-            max_length: Maximum length (uses default if not provided)
-
-        Returns:
-            Truncated content
-        """
-        if not content:
-            return ""
-
-        max_len = max_length or self.settings.max_cell_length
-        if len(content) <= max_len:
-            return content
-
-        return self._truncate_japanese_text(content, max_len)
 
     def create_table_row(
         self,
@@ -226,12 +120,12 @@ class TableFormatter:
             Formatted markdown table row
         """
         try:
-            # Use structured validation
+            # Use structured validation directly
             row = ClassMethodTableRow(
-                class_name=self.format_class_name(class_name),
-                role=self.format_role_description(role),
+                class_name=class_name,
+                role=role,
                 main_methods=methods,
-                remarks=self.format_remarks(remarks)
+                remarks=remarks
             )
             return row.to_table_row()
         except Exception:
@@ -297,15 +191,4 @@ class TableFormatter:
         # Fallback: simple truncation
         return text[:max_content_length] + suffix
 
-    def _is_japanese_char(self, char: str) -> bool:
-        """Check if character is Japanese.
-
-        Args:
-            char: Character to check
-
-        Returns:
-            True if character is Japanese
-        """
-        # Basic character ranges
-        return bool(re.match(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]', char))
 

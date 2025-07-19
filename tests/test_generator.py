@@ -12,11 +12,9 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from spec_generator.core.generator import (
-    AnalysisProcessor,
-    LLMProvider,
-    SpecificationGenerator,
-)
+from spec_generator.core.generator import SpecificationGenerator
+from spec_generator.core.llm_provider import LLMProvider
+from spec_generator.core.analysis_processor import AnalysisProcessor
 from spec_generator.models import (
     CodeChunk,
     Language,
@@ -32,7 +30,7 @@ class TestLLMProvider:
         """Test LLMProvider initialization with OpenAI."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
+        with patch('spec_generator.core.llm_provider.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
             mock_chat_openai.return_value = mock_llm
 
@@ -58,7 +56,7 @@ class TestLLMProvider:
             azure_openai_version="2023-05-15"
         )
 
-        with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
+        with patch('spec_generator.core.llm_provider.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
             mock_chat_openai.return_value = mock_llm
 
@@ -82,7 +80,7 @@ class TestLLMProvider:
         """Test successful LLM generation."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
+        with patch('spec_generator.core.llm_provider.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
             mock_llm.invoke.return_value = "Generated response"
             mock_chat_openai.return_value = mock_llm
@@ -106,7 +104,7 @@ class TestLLMProvider:
         config = SpecificationConfig(openai_api_key="test-key")
         config.performance_settings.rate_limit_rpm = 60  # 1 request per second
 
-        with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
+        with patch('spec_generator.core.llm_provider.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
             mock_llm.invoke.return_value = "Generated response"
             mock_chat_openai.return_value = mock_llm
@@ -139,7 +137,7 @@ class TestLLMProvider:
         """Test error handling in generation."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.ChatOpenAI') as mock_chat_openai:
+        with patch('spec_generator.core.llm_provider.ChatOpenAI') as mock_chat_openai:
             mock_llm = Mock()
             mock_llm.invoke.side_effect = Exception("API Error")
             mock_chat_openai.return_value = mock_llm
@@ -163,7 +161,7 @@ class TestAnalysisProcessor:
         """Test AnalysisProcessor initialization."""
         SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider:
+        with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider:
             mock_provider = Mock()
             mock_llm_provider.return_value = mock_provider
 
@@ -193,7 +191,8 @@ class TestAnalysisProcessor:
             file_path=Path("test.py"),
             start_line=1,
             end_line=1,
-            language=Language.PYTHON
+            language=Language.PYTHON,
+            chunk_type="function"
         )
 
         result = await processor.analyze_code_chunk(chunk)
@@ -216,7 +215,8 @@ class TestAnalysisProcessor:
             file_path=Path("test.py"),
             start_line=1,
             end_line=1,
-            language=Language.PYTHON
+            language=Language.PYTHON,
+            chunk_type="function"
         )
 
         result = await processor.analyze_code_chunk(chunk)
@@ -240,7 +240,8 @@ class TestAnalysisProcessor:
             file_path=Path("test.py"),
             start_line=1,
             end_line=1,
-            language=Language.PYTHON
+            language=Language.PYTHON,
+            chunk_type="function"
         )
 
         result = await processor.analyze_code_chunk(chunk)
@@ -346,8 +347,8 @@ class TestSpecificationGenerator:
         """Test SpecificationGenerator initialization."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider, \
-             patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor:
+        with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider, \
+             patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor:
 
             mock_provider = Mock()
             mock_processor = Mock()
@@ -366,8 +367,8 @@ class TestSpecificationGenerator:
         """Test successful specification generation."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider, \
-             patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor:
+        with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider, \
+             patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor:
 
             mock_provider = Mock()
             mock_processor = Mock()
@@ -399,7 +400,8 @@ class TestSpecificationGenerator:
                         file_path=Path("test.py"),
                         start_line=1,
                         end_line=1,
-                        language=Language.PYTHON
+                        language=Language.PYTHON,
+                        chunk_type="function"
                     )
                 ]
 
@@ -420,8 +422,8 @@ class TestSpecificationGenerator:
             output_path = Path(f.name)
 
         try:
-            with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider, \
-                 patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor:
+            with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider, \
+                 patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor:
 
                 mock_provider = Mock()
                 mock_processor = Mock()
@@ -446,7 +448,8 @@ class TestSpecificationGenerator:
                             file_path=Path("test.py"),
                             start_line=1,
                             end_line=1,
-                            language=Language.PYTHON
+                            language=Language.PYTHON,
+                            chunk_type="function"
                         )
                     ]
 
@@ -471,8 +474,8 @@ class TestSpecificationGenerator:
         config = SpecificationConfig(openai_api_key="test-key")
         config.performance_settings.batch_size = 2
 
-        with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider, \
-             patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor:
+        with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider, \
+             patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor:
 
             mock_provider = Mock()
             mock_processor = Mock()
@@ -489,11 +492,11 @@ class TestSpecificationGenerator:
 
             chunks = [
                 CodeChunk(content="def test1(): pass", file_path=Path("test1.py"),
-                         start_line=1, end_line=1, language=Language.PYTHON),
+                         start_line=1, end_line=1, language=Language.PYTHON, chunk_type="function"),
                 CodeChunk(content="def test2(): pass", file_path=Path("test2.py"),
-                         start_line=1, end_line=1, language=Language.PYTHON),
+                         start_line=1, end_line=1, language=Language.PYTHON, chunk_type="function"),
                 CodeChunk(content="def test3(): pass", file_path=Path("test3.py"),
-                         start_line=1, end_line=1, language=Language.PYTHON)
+                         start_line=1, end_line=1, language=Language.PYTHON, chunk_type="function")
             ]
 
             analyses = await generator._analyze_chunks(chunks)
@@ -506,8 +509,8 @@ class TestSpecificationGenerator:
         """Test fallback document generation when LLM fails."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider, \
-             patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor:
+        with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider, \
+             patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor:
 
             mock_provider = Mock()
             mock_processor = Mock()
@@ -537,7 +540,8 @@ class TestSpecificationGenerator:
                         file_path=Path("test.py"),
                         start_line=1,
                         end_line=1,
-                        language=Language.PYTHON
+                        language=Language.PYTHON,
+                        chunk_type="function"
                     )
                 ]
 
@@ -558,7 +562,7 @@ class TestSpecificationGenerator:
             existing_spec_path = Path(f.name)
 
         try:
-            with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider:
+            with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider:
                 mock_provider = Mock()
                 mock_llm_provider.return_value = mock_provider
 
@@ -589,7 +593,7 @@ class TestSpecificationGenerator:
         """Test creating change summary for updates."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider'):
+        with patch('spec_generator.core.llm_provider.LLMProvider'):
             generator = SpecificationGenerator(config)
 
             changes = [
@@ -609,16 +613,16 @@ class TestSpecificationGenerator:
         """Test calculating language distribution from chunks."""
         config = SpecificationConfig(openai_api_key="test-key")
 
-        with patch('spec_generator.core.generator.LLMProvider'):
+        with patch('spec_generator.core.llm_provider.LLMProvider'):
             generator = SpecificationGenerator(config)
 
             chunks = [
                 CodeChunk(content="def test1(): pass", file_path=Path("test1.py"),
-                         start_line=1, end_line=1, language=Language.PYTHON),
+                         start_line=1, end_line=1, language=Language.PYTHON, chunk_type="function"),
                 CodeChunk(content="def test2(): pass", file_path=Path("test2.py"),
-                         start_line=1, end_line=1, language=Language.PYTHON),
+                         start_line=1, end_line=1, language=Language.PYTHON, chunk_type="function"),
                 CodeChunk(content="function test() {}", file_path=Path("test.js"),
-                         start_line=1, end_line=1, language=Language.JAVASCRIPT)
+                         start_line=1, end_line=1, language=Language.JAVASCRIPT, chunk_type="function")
             ]
 
             distribution = generator._calculate_language_distribution(chunks)
@@ -648,6 +652,7 @@ def sample_chunks():
             start_line=1,
             end_line=2,
             language=Language.PYTHON,
+            chunk_type="function",
             metadata={"function_count": 1}
         ),
         CodeChunk(
@@ -656,6 +661,7 @@ def sample_chunks():
             start_line=3,
             end_line=5,
             language=Language.PYTHON,
+            chunk_type="class",
             metadata={"class_count": 1, "method_count": 1}
         ),
         CodeChunk(
@@ -664,6 +670,7 @@ def sample_chunks():
             start_line=1,
             end_line=3,
             language=Language.JAVASCRIPT,
+            chunk_type="function",
             metadata={"function_count": 1}
         )
     ]
@@ -773,8 +780,8 @@ Multi-language application with Python backend and JavaScript frontend
 - 言語: Python
 """
 
-    with patch('spec_generator.core.generator.LLMProvider') as mock_llm_provider_class, \
-         patch('spec_generator.core.generator.AnalysisProcessor') as mock_analysis_processor_class:
+    with patch('spec_generator.core.llm_provider.LLMProvider') as mock_llm_provider_class, \
+         patch('spec_generator.core.analysis_processor.AnalysisProcessor') as mock_analysis_processor_class:
 
         # Setup analysis processor mock
         mock_processor = Mock()
@@ -834,11 +841,11 @@ def test_processing_stats_calculation():
 
         chunks = [
             CodeChunk(content="line1\nline2", file_path=Path("file1.py"),
-                     start_line=1, end_line=2, language=Language.PYTHON),
+                     start_line=1, end_line=2, language=Language.PYTHON, chunk_type="module"),
             CodeChunk(content="line3\nline4\nline5", file_path=Path("file2.py"),
-                     start_line=1, end_line=3, language=Language.PYTHON),
+                     start_line=1, end_line=3, language=Language.PYTHON, chunk_type="module"),
             CodeChunk(content="line6", file_path=Path("file1.py"),  # Same file as first
-                     start_line=3, end_line=3, language=Language.PYTHON)
+                     start_line=3, end_line=3, language=Language.PYTHON, chunk_type="module")
         ]
 
         # Create a mock result to test stats calculation
