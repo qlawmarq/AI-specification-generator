@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from langchain_core.runnables import RunnableSequence
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 
 from ..models import (
     CodeChunk,
@@ -69,11 +69,11 @@ class LLMProvider:
             and self.config.azure_openai_endpoint
             and self.config.azure_openai_key
         ):
-            # Azure OpenAI
+            # Azure OpenAI - using proper AzureChatOpenAI integration
             model = self.config.llm_model or "gpt-4"
             self._actual_model_name = model  # Store for metadata
-            return ChatOpenAI(
-                model=model,
+            return AzureChatOpenAI(
+                azure_deployment=model,  # Azure uses deployment name instead of model
                 temperature=0.3,
                 azure_endpoint=self.config.azure_openai_endpoint,
                 api_key=self.config.azure_openai_key,
