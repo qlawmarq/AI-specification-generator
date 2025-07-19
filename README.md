@@ -144,6 +144,18 @@ uv run python -m spec_generator.cli install-parsers [OPTIONS]
 
 Configuration is managed entirely through environment variables. Copy `.env.example` to `.env` and configure your settings.
 
+### Supported Languages
+
+The tool supports the following programming languages out of the box:
+
+- **Python** (.py) - Full AST analysis with class and function extraction
+- **JavaScript** (.js) - ES6+ features and modern JavaScript patterns
+- **TypeScript** (.ts) - Types, interfaces, and TypeScript-specific constructs
+- **Java** (.java) - Classes, methods, packages, and object-oriented patterns
+- **C++** (.cpp, .hpp) - Classes, templates, and modern C++ features
+
+No additional configuration is required for language support - all languages work by default after installing the Tree-sitter parsers with `install-parsers` command.
+
 ## Development
 
 ### Running Tests
@@ -188,7 +200,7 @@ cp .env.example my-project/.env
 # Edit for project-specific settings
 echo "CHUNK_SIZE=2000" >> my-project/.env
 echo "MAX_MEMORY_MB=2048" >> my-project/.env
-echo "SUPPORTED_LANGUAGES=python,typescript" >> my-project/.env
+echo "REQUEST_TIMEOUT=300" >> my-project/.env
 
 # Use with the project
 cd my-project
