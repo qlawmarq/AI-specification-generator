@@ -22,7 +22,6 @@ class Language(Enum):
     TYPESCRIPT = "typescript"
     JAVA = "java"
     CPP = "cpp"
-    C = "c"
 
 
 class CodeChunk(BaseModel):
@@ -86,10 +85,6 @@ class JapaneseSpecSettings(BaseModel):
     """Settings for specification generation."""
 
     document_title: str = Field(default="システム仕様書", description="Document title")
-    include_toc: bool = Field(default=True, description="Include table of contents")
-    section_numbering: bool = Field(default=True, description="Use section numbering")
-    code_examples: bool = Field(default=True, description="Include code examples")
-    diagrams: bool = Field(default=False, description="Include diagrams")
 
 
 class PerformanceSettings(BaseModel):
@@ -97,9 +92,6 @@ class PerformanceSettings(BaseModel):
 
     request_timeout: int = Field(
         default=300, ge=1, description="Request timeout in seconds"
-    )
-    cli_timeout_seconds: int = Field(
-        default=600, ge=1, description="CLI-level timeout in seconds"
     )
     max_retries: int = Field(default=3, ge=0, description="Maximum retry attempts")
     retry_delay: int = Field(
@@ -109,12 +101,6 @@ class PerformanceSettings(BaseModel):
         default=200, ge=1, description="Rate limit requests per minute"
     )
     batch_size: int = Field(default=10, ge=1, description="Batch size for processing")
-    enable_batch_processing: bool = Field(
-        default=True, description="Enable batch processing for LLM calls"
-    )
-    batch_optimization_strategy: str = Field(
-        default="adaptive", description="Batch optimization strategy (adaptive, fixed, aggressive)"
-    )
 
 
 class SpecificationConfig(BaseModel):
@@ -181,18 +167,6 @@ class SpecificationConfig(BaseModel):
         description="Patterns to exclude from processing",
     )
 
-    # Tree-sitter Configuration
-    tree_sitter_languages: dict[str, str] = Field(
-        default_factory=lambda: {
-            "python": "tree_sitter_python",
-            "javascript": "tree_sitter_javascript",
-            "typescript": "tree_sitter_typescript",
-            "java": "tree_sitter_java",
-            "cpp": "tree_sitter_cpp",
-            "c": "tree_sitter_c",
-        },
-        description="Mapping of languages to Tree-sitter modules",
-    )
 
     # Specification Settings
     japanese_spec_settings: JapaneseSpecSettings = Field(
@@ -242,53 +216,50 @@ class ConfigLoader:
 
         config_dict: dict[str, Any] = {}
 
-        # LLM Configuration
-        if openai_key := os.getenv("OPENAI_API_KEY"):
-            config_dict["openai_api_key"] = openai_key
-        if azure_endpoint := os.getenv("AZURE_OPENAI_ENDPOINT"):
-            config_dict["azure_openai_endpoint"] = azure_endpoint
-        if azure_key := os.getenv("AZURE_OPENAI_KEY"):
-            config_dict["azure_openai_key"] = azure_key
-        if azure_version := os.getenv("AZURE_OPENAI_VERSION"):
-            config_dict["azure_openai_version"] = azure_version
-        if gemini_key := os.getenv("GEMINI_API_KEY"):
-            config_dict["gemini_api_key"] = gemini_key
-        if llm_provider := os.getenv("LLM_PROVIDER"):
-            config_dict["llm_provider"] = llm_provider
-        if llm_model := os.getenv("LLM_MODEL"):
-            config_dict["llm_model"] = llm_model
+        # LLM Configuration - using simplified pattern
+        env_mappings = {
+            "OPENAI_API_KEY": "openai_api_key",
+            "AZURE_OPENAI_ENDPOINT": "azure_openai_endpoint", 
+            "AZURE_OPENAI_KEY": "azure_openai_key",
+            "AZURE_OPENAI_VERSION": "azure_openai_version",
+            "GEMINI_API_KEY": "gemini_api_key",
+            "LLM_PROVIDER": "llm_provider",
+            "LLM_MODEL": "llm_model",
+            "OUTPUT_FORMAT": "output_format",
+        }
 
-        # Processing Configuration
-        if max_memory := os.getenv("MAX_MEMORY_MB"):
-            config_dict["max_memory_mb"] = int(max_memory)
-        if parallel_processes := os.getenv("PARALLEL_PROCESSES"):
-            config_dict["parallel_processes"] = int(parallel_processes)
-        if chunk_size := os.getenv("CHUNK_SIZE"):
-            config_dict["chunk_size"] = int(chunk_size)
-        if chunk_overlap := os.getenv("CHUNK_OVERLAP"):
-            config_dict["chunk_overlap"] = int(chunk_overlap)
+        for env_key, config_key in env_mappings.items():
+            if value := os.getenv(env_key):
+                config_dict[config_key] = value
+
+        # Processing Configuration - integer values
+        int_mappings = {
+            "MAX_MEMORY_MB": "max_memory_mb",
+            "PARALLEL_PROCESSES": "parallel_processes",
+            "CHUNK_SIZE": "chunk_size", 
+            "CHUNK_OVERLAP": "chunk_overlap",
+        }
+
+        for env_key, config_key in int_mappings.items():
+            if value := os.getenv(env_key):
+                config_dict[config_key] = int(value)
 
         # Performance Settings
+        performance_mappings = {
+            "REQUEST_TIMEOUT": "request_timeout",
+            "MAX_RETRIES": "max_retries",
+            "RETRY_DELAY": "retry_delay",
+            "RATE_LIMIT_RPM": "rate_limit_rpm",
+            "BATCH_SIZE": "batch_size",
+        }
+
         performance_dict = {}
-        if request_timeout := os.getenv("REQUEST_TIMEOUT"):
-            performance_dict["request_timeout"] = int(request_timeout)
-        if max_retries := os.getenv("MAX_RETRIES"):
-            performance_dict["max_retries"] = int(max_retries)
-        if retry_delay := os.getenv("RETRY_DELAY"):
-            performance_dict["retry_delay"] = int(retry_delay)
-        if rate_limit_rpm := os.getenv("RATE_LIMIT_RPM"):
-            performance_dict["rate_limit_rpm"] = int(rate_limit_rpm)
-        if batch_size := os.getenv("BATCH_SIZE"):
-            performance_dict["batch_size"] = int(batch_size)
+        for env_key, config_key in performance_mappings.items():
+            if value := os.getenv(env_key):
+                performance_dict[config_key] = int(value)
 
         if performance_dict:
-            config_dict["performance_settings"] = PerformanceSettings(
-                **performance_dict
-            )
-
-        # Output Configuration
-        if output_format := os.getenv("OUTPUT_FORMAT"):
-            config_dict["output_format"] = output_format
+            config_dict["performance_settings"] = PerformanceSettings(**performance_dict)
 
         return SpecificationConfig(**config_dict)
 
@@ -302,7 +273,6 @@ class ProcessingStats(BaseModel):
     processing_time_seconds: float = Field(
         default=0.0, description="Total processing time"
     )
-    memory_peak_mb: float = Field(default=0.0, description="Peak memory usage in MB")
     errors_encountered: list[str] = Field(
         default_factory=list, description="List of errors"
     )

@@ -8,7 +8,6 @@ LangChain-based CLI tool for generating specification documents from large codeb
 - **🤖 LangChain Integration**: Progressive prompting strategy (analysis → generation) with GPT-4
 - **📝 Documentation Generation**: Generates IT industry standard specification documents
 - **💾 Large Codebase Support**: Memory-efficient streaming processing for 4GB+ repositories
-- **⚡ Incremental Updates**: Git-based semantic diff detection for specification updates
 - **🔧 CLI Interface**: Rich command-line interface with progress indicators and error handling
 - **🌐 Multi-Provider LLM**: Support for OpenAI, Azure OpenAI, and Google Gemini with rate limiting
 
@@ -38,7 +37,6 @@ Output Generation (Markdown + Metadata)
   - OpenAI API key (for specification generation)
   - Azure OpenAI access
   - Google Gemini API key
-- Git (for incremental updates)
 
 ### Installation
 
@@ -82,15 +80,6 @@ uv run python -m spec_generator.cli generate src/main.py \
   --output specification.md
 ```
 
-**Update existing specification:**
-
-```bash
-uv run python -m spec_generator.cli update /path/to/repo \
-  --existing-spec specifications/current-spec.md \
-  --base-commit HEAD~1 \
-  --target-commit HEAD
-```
-
 **View configuration:**
 
 ```bash
@@ -111,21 +100,6 @@ uv run python -m spec_generator.cli generate [FILE_PATH] [OPTIONS]
 
 - `--output, -o`: Output file (default: `./specification.md`)
 - `--semantic-chunking`: Use semantic chunking (requires OpenAI API)
-
-### `update`
-
-Update existing specification based on code changes.
-
-```bash
-uv run python -m spec_generator.cli update [REPO_PATH] [OPTIONS]
-```
-
-**Options:**
-
-- `--output, -o`: Output directory (default: `./spec-updates`)
-- `--base-commit`: Base commit for comparison (default: `HEAD~1`)
-- `--target-commit`: Target commit (default: `HEAD`)
-- `--existing-spec`: Path to existing specification
 
 ### `install-parsers`
 
@@ -219,16 +193,3 @@ uv run python -m spec_generator.cli generate src/utils.py --output utils-spec.md
 uv run python -m spec_generator.cli generate src/models.py --output models-spec.md
 ```
 
-### Incremental Updates (WIP)
-
-Set up automated specification updates:
-
-```bash
-#!/bin/bash
-# update-specs.sh
-uv run python -m spec_generator.cli update /path/to/repo \
-  --existing-spec docs/current-spec.md \
-  --output docs/updated-specs/ \
-  --base-commit $(git rev-parse HEAD~1) \
-  --target-commit $(git rev-parse HEAD)
-```

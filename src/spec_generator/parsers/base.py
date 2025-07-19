@@ -87,7 +87,6 @@ class LanguageParser(ABC):
             Language.TYPESCRIPT: "tree_sitter_typescript",
             Language.JAVA: "tree_sitter_java",
             Language.CPP: "tree_sitter_cpp",
-            Language.C: "tree_sitter_c",
         }
 
         try:

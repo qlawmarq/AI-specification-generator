@@ -27,7 +27,6 @@ from ..models import (
 from ..parsers import ASTAnalyzer
 from ..parsers.tree_sitter_parser import TreeSitterParser
 from ..utils.file_utils import FileScanner, LanguageDetector
-from ..utils.simple_memory import SimpleMemoryTracker
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,6 @@ class ProcessingContext:
         self.config = config
         self.start_time = time.time()
         self.stats = ProcessingStats()
-        self.memory_tracker = SimpleMemoryTracker(config.max_memory_mb)
         self.processed_files: set[str] = set()
         self.failed_files: set[str] = set()
 
@@ -60,9 +58,6 @@ class ProcessingContext:
 
         # Update timing and memory
         self.stats.processing_time_seconds = time.time() - self.start_time
-        self.stats.memory_peak_mb = max(
-            self.stats.memory_peak_mb, self.memory_tracker.get_current_usage_mb()
-        )
 
 
 class ChunkProcessor:
@@ -355,9 +350,6 @@ class LargeCodebaseProcessor:
             ):
                 yield chunk
 
-                # Check memory usage and trigger GC if needed
-                if context.memory_tracker.should_trigger_gc():
-                    context.memory_tracker.trigger_gc()
 
             logger.info(f"Repository processing completed. Stats: {context.stats}")
 
@@ -405,10 +397,6 @@ class LargeCodebaseProcessor:
                     for chunk in result:
                         yield chunk
 
-            # Memory management between batches
-            if context.memory_tracker.should_trigger_gc():
-                context.memory_tracker.trigger_gc()
-                await asyncio.sleep(0.1)  # Allow cleanup
 
     async def _process_single_file(
         self,

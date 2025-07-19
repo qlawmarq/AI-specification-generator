@@ -198,56 +198,7 @@ JSON形式で構造化して出力してください:
 それでは、詳細設計書を作成してください。""",
     )
 
-    # Update Specification Prompt
-    UPDATE_SPEC_PROMPT = PromptTemplate(
-        input_variables=["existing_spec", "changes", "change_summary"],
-        template="""既存の仕様書を変更内容に基づいて更新してください。
 
-## 既存仕様書:
-{existing_spec}
-
-## 変更概要:
-{change_summary}
-
-## 詳細変更内容:
-{changes}
-
-## 更新要件:
-1. 変更された部分のみを更新する
-2. 既存の文書構造を保持する
-3. 変更履歴を記録する
-4. 整合性を保つ
-
-## 出力形式:
-更新された仕様書をMarkdown形式で出力し、変更箇所がわかるように以下の形式で変更履歴を追加してください：
-
-### 変更履歴
-| 日付 | 変更箇所 | 変更内容 | 変更理由 |
-|------|----------|----------|----------|
-| YYYY-MM-DD | セクション名 | 変更の説明 | 変更理由 |
-
-更新された仕様書を出力してください。""",
-    )
-
-    # Section Update Prompt (for updater.py)
-    SECTION_UPDATE_PROMPT = PromptTemplate(
-        input_variables=["section_content", "change_summary"],
-        template="""以下のセクションを変更内容に基づいて更新してください。
-
-## 現在のセクション内容:
-{section_content}
-
-## 変更内容:
-{change_summary}
-
-## 更新要件:
-1. 既存の構造を保持する
-2. 変更された部分のみを更新する
-3. 日本語の技術文書として適切な表現を使用する
-4. マークダウン形式で出力する
-
-更新されたセクション内容を出力してください：""",
-    )
 
     # System Overview Prompt (for generator.py)
     SYSTEM_OVERVIEW_PROMPT = PromptTemplate(

@@ -22,8 +22,6 @@ TEST_CATEGORIES = {
             "tests/test_tree_sitter_parser.py",
             "tests/test_processor.py",
             "tests/test_generator.py",
-            "tests/test_updater.py",
-            "tests/test_diff_detector.py",
         ],
         "markers": ["not integration"],
     },

@@ -2,8 +2,7 @@
 Command Line Interface for Specification Generator.
 
 This module provides a comprehensive CLI using Typer with support for:
-- generate-single: Single file processing (main command)
-- update: Incremental updates based on changes
+- generate: Single file processing (main command)
 - install-parsers: Tree-sitter parser installation
 """
 
@@ -28,11 +27,9 @@ from rich.table import Table
 
 from . import __version__
 from .config import load_config, setup_logging, validate_config
-from .core.diff_detector import SemanticDiffDetector
 from .core.generator import SpecificationGenerator
 from .core.processor import LargeCodebaseProcessor
 from .models import SpecificationConfig
-from .utils import is_git_repository
 
 # Create Typer app
 app = typer.Typer(
@@ -91,65 +88,6 @@ def main(
 
 
 
-@app.command()
-def update(
-    repo_path: Path = typer.Argument(
-        ...,
-        help="Path to the Git repository",
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-    ),
-    output: Path = typer.Option(
-        "./spec-updates",
-        "--output",
-        "-o",
-        help="Output directory for updated specifications",
-    ),
-    base_commit: str = typer.Option(
-        "HEAD~1", "--base-commit", help="Base commit for comparison"
-    ),
-    target_commit: str = typer.Option(
-        "HEAD", "--target-commit", help="Target commit for comparison"
-    ),
-    existing_spec: Optional[Path] = typer.Option(
-        None,
-        "--existing-spec",
-        help="Path to existing specification to update",
-        exists=True,
-    ),
-):
-    """
-    Update existing specification based on code changes.
-
-    This command detects semantic changes between commits and updates
-    the specification incrementally.
-    """
-    try:
-        console.print("[bold blue]Updating Specification[/bold blue]")
-        console.print(f"Repository: [green]{repo_path}[/green]")
-        console.print(
-            f"Comparing: [yellow]{base_commit}[/yellow] → [yellow]{target_commit}[/yellow]"
-        )
-
-        # Validate Git repository
-        if not is_git_repository(repo_path):
-            console.print(f"[red]Error: {repo_path} is not a Git repository[/red]")
-            raise typer.Exit(1)
-
-        # Load configuration
-        global current_config
-        current_config = load_config()
-        validate_config(current_config)
-
-        # Run update
-        asyncio.run(
-            _run_update(repo_path, output, base_commit, target_commit, existing_spec)
-        )
-
-    except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
 
 
 @app.command()
@@ -239,7 +177,6 @@ def install_parsers(
                 "typescript",
                 "java",
                 "cpp",
-                "c",
             ]
 
         console.print(
@@ -293,59 +230,6 @@ def config_info():
 
 
 
-async def _run_update(
-    repo_path: Path,
-    output: Path,
-    base_commit: str,
-    target_commit: str,
-    existing_spec: Optional[Path],
-):
-    """Run the update process."""
-    # Create diff detector
-    diff_detector = SemanticDiffDetector(current_config, repo_path)
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Detecting changes...", total=None)
-
-        changes = diff_detector.detect_changes(base_commit, target_commit, True)
-
-        progress.remove_task(task)
-
-    if not changes:
-        console.print("[yellow]No semantic changes detected[/yellow]")
-        return
-
-    # Display change summary
-    summary = diff_detector.get_change_summary(changes)
-    _display_change_summary(summary)
-
-    # Generate update if existing spec provided
-    if existing_spec:
-        generator = SpecificationGenerator(current_config)
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Updating specification...", total=None)
-
-            change_data = [change.model_dump(mode='json') for change in changes]
-            output_path = output / f"updated_specification_{int(time.time())}.md"
-
-            await generator.update_specification(
-                existing_spec, change_data, output_path
-            )
-
-            progress.remove_task(task)
-
-        console.print(
-            f"[green]✓[/green] Updated specification saved to [green]{output_path}[/green]"
-        )
 
 
 async def _run_single_file(file_path: Path, output: Path, use_semantic_chunking: bool):
@@ -429,26 +313,6 @@ async def _run_single_file(file_path: Path, output: Path, use_semantic_chunking:
 
     console.print(f"[green]✓[/green] Specification saved to [green]{output}[/green]")
     console.print(f"[dim]Processed {len(chunks)} code chunks successfully[/dim]")
-
-
-
-
-def _display_change_summary(summary: dict):
-    """Display change summary."""
-    table = Table(title="Change Summary")
-    table.add_column("Change Type", style="bold")
-    table.add_column("Count")
-
-    for change_type, count in summary.get("by_type", {}).items():
-        table.add_row(change_type, str(count))
-
-    console.print(table)
-
-    impact_dist = summary.get("impact_distribution", {})
-    console.print("\nImpact Distribution:")
-    console.print(f"  Low: {impact_dist.get('low', 0)}")
-    console.print(f"  Medium: {impact_dist.get('medium', 0)}")
-    console.print(f"  High: {impact_dist.get('high', 0)}")
 
 
 def _display_config_info(config: SpecificationConfig):

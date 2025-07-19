@@ -43,8 +43,6 @@ Following TEST_REQ.md requirements, always test CLI commands comprehensively:
   # 3. generate command
   uv run python -m spec_generator.cli generate test_file.py --output test-spec.md
 
-  # 4. update command
-  uv run python -m spec_generator.cli update . --output spec-updates
   ```
 
 - **Verify specification content quality**: Generated specifications must be well-formed documents
