@@ -149,7 +149,13 @@ class SpecificationConfig(BaseModel):
 
     # Language Support
     supported_languages: list[Language] = Field(
-        default_factory=lambda: [Language.PYTHON, Language.JAVASCRIPT],
+        default_factory=lambda: [
+            Language.PYTHON, 
+            Language.JAVASCRIPT, 
+            Language.TYPESCRIPT, 
+            Language.JAVA, 
+            Language.CPP
+        ],
         description="List of supported programming languages",
     )
 
